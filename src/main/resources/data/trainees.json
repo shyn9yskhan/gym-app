@@ -1,0 +1,22 @@
+[
+  {
+    "firstname":"Alice",
+    "lastname":"Johnson",
+    "username":"Alice.Johnson",
+    "password":"pass1234",
+    "active":true,
+    "dateOfBirth":"1990-05-20",
+    "address":"123 Main St",
+    "userId":"T1001"
+  },
+  {
+    "firstname":"Bob",
+    "lastname":"Smith",
+    "username":"Bob.Smith",
+    "password":"pass5678",
+    "active":true,
+    "dateOfBirth":"1988-11-02",
+    "address":"456 Elm St",
+    "userId":"T1002"
+  }
+]
