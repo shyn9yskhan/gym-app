@@ -8,6 +8,9 @@ public class TraineeDTO {
     private LocalDate dateOfBirth;
     private String address;
 
+    public TraineeDTO() {
+    }
+
     public TraineeDTO(String firstname, String lastname, LocalDate dateOfBirth, String address) {
         this.firstname = firstname;
         this.lastname = lastname;

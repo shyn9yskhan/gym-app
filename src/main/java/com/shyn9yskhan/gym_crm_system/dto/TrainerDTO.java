@@ -5,6 +5,9 @@ public class TrainerDTO {
     private String lastname;
     private String trainingTypeName;
 
+    public TrainerDTO() {
+    }
+
     public TrainerDTO(String firstname, String lastname, String trainingTypeName) {
         this.firstname = firstname;
         this.lastname = lastname;

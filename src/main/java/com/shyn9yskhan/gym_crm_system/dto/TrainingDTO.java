@@ -10,6 +10,9 @@ public class TrainingDTO {
     private LocalDateTime trainingDate;
     private Duration trainingDuration;
 
+    public TrainingDTO() {
+    }
+
     public TrainingDTO(String trainerId, String trainingName, String trainingTypeName, LocalDateTime trainingDate, Duration trainingDuration) {
         this.trainerId = trainerId;
         this.trainingName = trainingName;
