@@ -1,7 +1,8 @@
-package com.shyn9yskhan.gym_crm_system.dao;
+package com.shyn9yskhan.gym_crm_system.repository;
 
 import com.shyn9yskhan.gym_crm_system.model.Training;
 import com.shyn9yskhan.gym_crm_system.model.TrainingType;
+import com.shyn9yskhan.gym_crm_system.repository.impl.InMemoryTrainingRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -12,14 +13,14 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class TrainingDAOTest {
+class InMemoryTrainingRepositoryTest {
 
-    private TrainingDAO dao;
+    private InMemoryTrainingRepository dao;
 
     @BeforeEach
     void setUp() {
         Map<String, Training> store = new HashMap<>();
-        dao = new TrainingDAO(store);
+        dao = new InMemoryTrainingRepository(store);
     }
 
     @Test
@@ -37,14 +38,16 @@ class TrainingDAOTest {
                 new TrainingType("YOGA"),
                 LocalDateTime.now(), Duration.ofMinutes(45));
         dao.createTraining(t);
-        t.setTrainingName("Power Yoga");
-        assertTrue(dao.updateTraining("TR2", t));
-        assertEquals("Power Yoga", dao.getTraining("TR2").getTrainingName());
+        t.setName("Power Yoga");
+        Training updated = dao.updateTraining("TR2", t);
+        assertNotNull(updated);
+        assertEquals("Power Yoga", updated.getName());
     }
 
     @Test
     void updateNonExistingTraining() {
-        assertFalse(dao.updateTraining("NOPE", null));
+        Training result = dao.updateTraining("NOPE", null);
+        assertNull(result);
     }
 
     @Test
@@ -53,12 +56,14 @@ class TrainingDAOTest {
                 new TrainingType("PILATES"),
                 LocalDateTime.now(), Duration.ofHours(1));
         dao.createTraining(t);
-        assertTrue(dao.deleteTraining("TR3"));
+        Training removed = dao.deleteTraining("TR3");
+        assertEquals(t, removed);
         assertNull(dao.getTraining("TR3"));
     }
 
     @Test
     void deleteNonExistingTraining() {
-        assertFalse(dao.deleteTraining("NOPE"));
+        Training removed = dao.deleteTraining("NOPE");
+        assertNull(removed);
     }
 }

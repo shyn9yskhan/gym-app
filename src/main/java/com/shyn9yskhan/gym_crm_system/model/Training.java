@@ -4,30 +4,30 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 
 public class Training {
-    private String trainingId;
+    private String id;
     private String trainerId;
-    private String trainingName;
-    private TrainingType trainingType;
-    private LocalDateTime trainingDate;
-    private Duration trainingDuration;
+    private String name;
+    private TrainingType type;
+    private LocalDateTime date;
+    private Duration duration;
 
     public Training() {}
 
-    public Training(String trainingId, String trainerId, String trainingName, TrainingType trainingType, LocalDateTime trainingDate, Duration trainingDuration) {
-        this.trainingId = trainingId;
+    public Training(String id, String trainerId, String name, TrainingType type, LocalDateTime date, Duration duration) {
+        this.id = id;
         this.trainerId = trainerId;
-        this.trainingName = trainingName;
-        this.trainingType = trainingType;
-        this.trainingDate = trainingDate;
-        this.trainingDuration = trainingDuration;
+        this.name = name;
+        this.type = type;
+        this.date = date;
+        this.duration = duration;
     }
 
-    public String getTrainingId() {
-        return trainingId;
+    public String getId() {
+        return id;
     }
 
-    public void setTrainingId(String trainingId) {
-        this.trainingId = trainingId;
+    public void setId(String id) {
+        this.id = id;
     }
 
     public String getTrainerId() {
@@ -38,35 +38,35 @@ public class Training {
         this.trainerId = trainerId;
     }
 
-    public String getTrainingName() {
-        return trainingName;
+    public String getName() {
+        return name;
     }
 
-    public void setTrainingName(String trainingName) {
-        this.trainingName = trainingName;
+    public void setName(String name) {
+        this.name = name;
     }
 
-    public TrainingType getTrainingType() {
-        return trainingType;
+    public TrainingType getType() {
+        return type;
     }
 
-    public void setTrainingType(TrainingType trainingType) {
-        this.trainingType = trainingType;
+    public void setType(TrainingType type) {
+        this.type = type;
     }
 
-    public LocalDateTime getTrainingDate() {
-        return trainingDate;
+    public LocalDateTime getDate() {
+        return date;
     }
 
-    public void setTrainingDate(LocalDateTime trainingDate) {
-        this.trainingDate = trainingDate;
+    public void setDate(LocalDateTime date) {
+        this.date = date;
     }
 
-    public Duration getTrainingDuration() {
-        return trainingDuration;
+    public Duration getDuration() {
+        return duration;
     }
 
-    public void setTrainingDuration(Duration trainingDuration) {
-        this.trainingDuration = trainingDuration;
+    public void setDuration(Duration duration) {
+        this.duration = duration;
     }
 }

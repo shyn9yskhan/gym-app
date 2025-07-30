@@ -1,23 +1,28 @@
-package com.shyn9yskhan.gym_crm_system.dao;
+package com.shyn9yskhan.gym_crm_system.repository.impl;
 
 import com.shyn9yskhan.gym_crm_system.model.Trainee;
+import com.shyn9yskhan.gym_crm_system.repository.TraineeRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
-import java.util.*;
+import java.util.Map;
+import java.util.Objects;
+import java.util.ArrayList;
+import java.util.List;
 
 @Repository
-public class TraineeDAO {
-    private static final Logger log = LoggerFactory.getLogger(TraineeDAO.class);
+public class InMemoryTraineeRepository implements TraineeRepository {
+    private static final Logger log = LoggerFactory.getLogger(InMemoryTraineeRepository.class);
     private final Map<String, Trainee> trainees;
 
-    public TraineeDAO(@Qualifier("traineeStorage") Map<String, Trainee> trainees) {
+    public InMemoryTraineeRepository(@Qualifier("traineeStorage") Map<String, Trainee> trainees) {
         this.trainees = trainees;
         log.info("TraineeDAO initialized with storage capacity {}", trainees.size());
     }
 
+    @Override
     public Trainee createTrainee(Trainee trainee) {
         log.debug("Creating trainee with ID {} and username {}", trainee.getUserId(), trainee.getUsername());
         trainees.put(trainee.getUserId(), trainee);
@@ -25,28 +30,31 @@ public class TraineeDAO {
         return trainee;
     }
 
-    public boolean updateTrainee(String traineeId, Trainee updatedTrainee) {
+    @Override
+    public Trainee updateTrainee(String traineeId, Trainee updatedTrainee) {
         log.debug("Updating trainee {}", traineeId);
         if (!trainees.containsKey(traineeId)) {
             log.warn("Trainee {} not found for update", traineeId);
-            return false;
+            return null;
         }
         trainees.put(traineeId, updatedTrainee);
         log.info("Trainee {} updated successfully", traineeId);
-        return true;
+        return updatedTrainee;
     }
 
-    public boolean deleteTrainee(String traineeId) {
+    @Override
+    public Trainee deleteTrainee(String traineeId) {
         log.debug("Deleting trainee {}", traineeId);
-        boolean removed = trainees.remove(traineeId) != null;
-        if (removed) {
+        Trainee removedTrainee = trainees.remove(traineeId);
+        if (removedTrainee != null) {
             log.info("Trainee {} deleted", traineeId);
         } else {
             log.warn("Trainee {} not found for deletion", traineeId);
         }
-        return removed;
+        return removedTrainee;
     }
 
+    @Override
     public Trainee getTrainee(String traineeId) {
         log.debug("Retrieving trainee {}", traineeId);
         Trainee t = trainees.get(traineeId);
@@ -58,6 +66,7 @@ public class TraineeDAO {
         return t;
     }
 
+    @Override
     public boolean existsByUsername(String username) {
         log.debug("Checking existence of username {}", username);
         for (Trainee trainee : trainees.values()) {
@@ -70,8 +79,9 @@ public class TraineeDAO {
         return false;
     }
 
+    @Override
     public List<String> findUsernamesByBase(String base) {
-        log.debug("Finding usernames starting with '{}'");
+        log.debug("Finding usernames starting with '{}'", base);
         List<String> matches = new ArrayList<>();
         for (Trainee trainee : trainees.values()) {
             String username = trainee.getUsername();

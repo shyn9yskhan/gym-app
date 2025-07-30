@@ -1,7 +1,8 @@
-package com.shyn9yskhan.gym_crm_system.dao;
+package com.shyn9yskhan.gym_crm_system.repository;
 
 import com.shyn9yskhan.gym_crm_system.model.Trainer;
 import com.shyn9yskhan.gym_crm_system.model.TrainingType;
+import com.shyn9yskhan.gym_crm_system.repository.impl.InMemoryTrainerRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -10,14 +11,14 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class TrainerDAOTest {
+class InMemoryTrainerRepositoryTest {
 
-    private TrainerDAO dao;
+    private InMemoryTrainerRepository dao;
 
     @BeforeEach
     void setUp() {
         Map<String, Trainer> store = new HashMap<>();
-        dao = new TrainerDAO(store);
+        dao = new InMemoryTrainerRepository(store);
     }
 
     @Test
@@ -34,27 +35,31 @@ class TrainerDAOTest {
                 new TrainingType("STRENGTH"), "R2");
         dao.createTrainer(t);
         t.setLastname("Li");
-        assertTrue(dao.updateTrainer("R2", t));
-        assertEquals("Li", dao.getTrainer("R2").getLastname());
+        Trainer updated = dao.updateTrainer("R2", t);
+        assertNotNull(updated);
+        assertEquals("Li", updated.getLastname());
     }
 
     @Test
     void updateNonExistingTrainer() {
-        assertFalse(dao.updateTrainer("NOPE", null));
+        Trainer result = dao.updateTrainer("NOPE", null);
+        assertNull(result);
     }
 
     @Test
-    void deleteTrainer() {
+    void deleteExistingTrainer() {
         Trainer t = new Trainer("A","B","A.B","pw",true,
                 new TrainingType("YOGA"),"R3");
         dao.createTrainer(t);
-        assertTrue(dao.deleteTrainer("R3"));
+        Trainer removed = dao.deleteTrainer("R3");
+        assertEquals(t, removed);
         assertNull(dao.getTrainer("R3"));
     }
 
     @Test
     void deleteNonExistingTrainer() {
-        assertFalse(dao.deleteTrainer("NOPE"));
+        Trainer removed = dao.deleteTrainer("NOPE");
+        assertNull(removed);
     }
 
     @Test

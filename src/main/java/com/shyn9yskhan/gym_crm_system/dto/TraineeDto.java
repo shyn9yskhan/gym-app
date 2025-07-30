@@ -2,16 +2,16 @@ package com.shyn9yskhan.gym_crm_system.dto;
 
 import java.time.LocalDate;
 
-public class TraineeDTO {
+public class TraineeDto {
     private String firstname;
     private String lastname;
     private LocalDate dateOfBirth;
     private String address;
 
-    public TraineeDTO() {
+    public TraineeDto() {
     }
 
-    public TraineeDTO(String firstname, String lastname, LocalDate dateOfBirth, String address) {
+    public TraineeDto(String firstname, String lastname, LocalDate dateOfBirth, String address) {
         this.firstname = firstname;
         this.lastname = lastname;
         this.dateOfBirth = dateOfBirth;

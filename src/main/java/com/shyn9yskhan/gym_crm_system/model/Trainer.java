@@ -5,7 +5,7 @@ public class Trainer extends User {
     private String userId;
 
     public Trainer() {
-        super(null, null, null, null, false);
+        super();
     }
 
     public Trainer(String firstname, String lastname, String username, String password, boolean isActive, TrainingType specialization, String userId) {

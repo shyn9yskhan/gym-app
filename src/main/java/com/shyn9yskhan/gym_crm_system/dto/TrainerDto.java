@@ -1,14 +1,14 @@
 package com.shyn9yskhan.gym_crm_system.dto;
 
-public class TrainerDTO {
+public class TrainerDto {
     private String firstname;
     private String lastname;
     private String trainingTypeName;
 
-    public TrainerDTO() {
+    public TrainerDto() {
     }
 
-    public TrainerDTO(String firstname, String lastname, String trainingTypeName) {
+    public TrainerDto(String firstname, String lastname, String trainingTypeName) {
         this.firstname = firstname;
         this.lastname = lastname;
         this.trainingTypeName = trainingTypeName;

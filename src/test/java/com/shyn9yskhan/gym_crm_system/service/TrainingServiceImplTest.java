@@ -1,9 +1,10 @@
 package com.shyn9yskhan.gym_crm_system.service;
 
-import com.shyn9yskhan.gym_crm_system.dao.TrainingDAO;
-import com.shyn9yskhan.gym_crm_system.dto.TrainingDTO;
+import com.shyn9yskhan.gym_crm_system.repository.impl.InMemoryTrainingRepository;
+import com.shyn9yskhan.gym_crm_system.dto.TrainingDto;
 import com.shyn9yskhan.gym_crm_system.model.Training;
 import com.shyn9yskhan.gym_crm_system.model.TrainingType;
+import com.shyn9yskhan.gym_crm_system.service.impl.TrainingServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -16,13 +17,13 @@ import java.time.LocalDateTime;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-class TrainingServiceTest {
+class TrainingServiceImplTest {
 
     @Mock
-    private TrainingDAO trainingDAO;
+    private InMemoryTrainingRepository inMemoryTrainingRepository;
 
     @InjectMocks
-    private TrainingService service;
+    private TrainingServiceImpl service;
 
     @BeforeEach
     void setUp() {
@@ -31,19 +32,19 @@ class TrainingServiceTest {
 
     @Test
     void createTraining_persistsWithGeneratedId() {
-        TrainingDTO dto = new TrainingDTO();
+        TrainingDto dto = new TrainingDto();
         dto.setTrainerId("R1");
         dto.setTrainingName("Workout");
         dto.setTrainingTypeName("CARDIO");
         dto.setTrainingDate(LocalDateTime.of(2025,1,1,10,0));
         dto.setTrainingDuration(Duration.ofHours(1));
 
-        when(trainingDAO.createTraining(any())).thenAnswer(i -> i.getArgument(0));
+        when(inMemoryTrainingRepository.createTraining(any())).thenAnswer(i -> i.getArgument(0));
 
         Training created = service.createTraining(dto);
-        assertNotNull(created.getTrainingId());
+        assertNotNull(created.getId());
         assertEquals(dto.getTrainerId(), created.getTrainerId());
-        assertEquals(dto.getTrainingName(), created.getTrainingName());
+        assertEquals(dto.getTrainingName(), created.getName());
     }
 
     @Test
@@ -51,7 +52,7 @@ class TrainingServiceTest {
         Training t = new Training("T1","R1","Name",
                 new TrainingType("YOGA"),
                 LocalDateTime.now(), Duration.ofMinutes(30));
-        when(trainingDAO.getTraining("T1")).thenReturn(t);
+        when(inMemoryTrainingRepository.getTraining("T1")).thenReturn(t);
         assertSame(t, service.getTraining("T1"));
     }
 }

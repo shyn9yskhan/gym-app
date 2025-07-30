@@ -3,17 +3,17 @@ package com.shyn9yskhan.gym_crm_system.dto;
 import java.time.Duration;
 import java.time.LocalDateTime;
 
-public class TrainingDTO {
+public class TrainingDto {
     private String trainerId;
     private String trainingName;
     private String trainingTypeName;
     private LocalDateTime trainingDate;
     private Duration trainingDuration;
 
-    public TrainingDTO() {
+    public TrainingDto() {
     }
 
-    public TrainingDTO(String trainerId, String trainingName, String trainingTypeName, LocalDateTime trainingDate, Duration trainingDuration) {
+    public TrainingDto(String trainerId, String trainingName, String trainingTypeName, LocalDateTime trainingDate, Duration trainingDuration) {
         this.trainerId = trainerId;
         this.trainingName = trainingName;
         this.trainingTypeName = trainingTypeName;
