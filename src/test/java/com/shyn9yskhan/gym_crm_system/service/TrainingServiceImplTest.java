@@ -5,18 +5,23 @@ import com.shyn9yskhan.gym_crm_system.dto.TrainingDto;
 import com.shyn9yskhan.gym_crm_system.model.Training;
 import com.shyn9yskhan.gym_crm_system.model.TrainingType;
 import com.shyn9yskhan.gym_crm_system.service.impl.TrainingServiceImpl;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 class TrainingServiceImplTest {
 
     @Mock
@@ -25,13 +30,8 @@ class TrainingServiceImplTest {
     @InjectMocks
     private TrainingServiceImpl service;
 
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-    }
-
     @Test
-    void createTraining_persistsWithGeneratedId() {
+    void createTraining_persistsWithGeneratedId_andVerifiesCreate() {
         TrainingDto dto = new TrainingDto();
         dto.setTrainerId("R1");
         dto.setTrainingName("Workout");
@@ -45,14 +45,19 @@ class TrainingServiceImplTest {
         assertNotNull(created.getId());
         assertEquals(dto.getTrainerId(), created.getTrainerId());
         assertEquals(dto.getTrainingName(), created.getName());
+
+        verify(inMemoryTrainingRepository).createTraining(any(Training.class));
     }
 
     @Test
-    void getTraining_delegatesToDAO() {
-        Training t = new Training("T1","R1","Name",
+    void getTraining_delegatesToDAO_andVerifiesGet() {
+        Training training = new Training("T1","R1","Name",
                 new TrainingType("YOGA"),
                 LocalDateTime.now(), Duration.ofMinutes(30));
-        when(inMemoryTrainingRepository.getTraining("T1")).thenReturn(t);
-        assertSame(t, service.getTraining("T1"));
+        when(inMemoryTrainingRepository.getTraining("T1")).thenReturn(training);
+
+        Training result = service.getTraining("T1");
+        assertSame(training, result);
+        verify(inMemoryTrainingRepository).getTraining("T1");
     }
 }

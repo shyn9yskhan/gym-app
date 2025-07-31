@@ -75,7 +75,6 @@ public class TraineeServiceImpl implements TraineeService {
     public Trainee deleteTrainee(String traineeId) {
         logger.debug("Deleting trainee with ID: {}", traineeId);
         Trainee deletedTrainee = traineeRepository.deleteTrainee(traineeId);
-
         if (deletedTrainee == null) {
             logger.warn("Failed to delete trainee with ID: {}", traineeId);
             return null;
