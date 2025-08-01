@@ -6,6 +6,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -26,7 +27,7 @@ class InMemoryTraineeRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        store = spy(new java.util.HashMap<>());
+        store = spy(new HashMap<>());
         repository = new InMemoryTraineeRepository(store);
     }
 

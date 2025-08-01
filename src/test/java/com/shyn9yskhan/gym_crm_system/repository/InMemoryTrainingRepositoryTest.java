@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -25,7 +26,7 @@ class InMemoryTrainingRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        store = spy(new java.util.HashMap<>());
+        store = spy(new HashMap<>());
         repository = new InMemoryTrainingRepository(store);
     }
 

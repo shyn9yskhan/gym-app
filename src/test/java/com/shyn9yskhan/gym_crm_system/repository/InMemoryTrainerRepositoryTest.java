@@ -6,6 +6,7 @@ import com.shyn9yskhan.gym_crm_system.repository.impl.InMemoryTrainerRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -25,7 +26,7 @@ class InMemoryTrainerRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        store = spy(new java.util.HashMap<>());
+        store = spy(new HashMap<>());
         repository = new InMemoryTrainerRepository(store);
     }
 
