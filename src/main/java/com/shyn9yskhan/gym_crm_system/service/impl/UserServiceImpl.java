@@ -1,0 +1,104 @@
+package com.shyn9yskhan.gym_crm_system.service.impl;
+
+import com.shyn9yskhan.gym_crm_system.domain.User;
+import com.shyn9yskhan.gym_crm_system.entity.UserEntity;
+import com.shyn9yskhan.gym_crm_system.repository.UserRepository;
+import com.shyn9yskhan.gym_crm_system.service.RandomGenerator;
+import com.shyn9yskhan.gym_crm_system.service.UserCreationResult;
+import com.shyn9yskhan.gym_crm_system.service.UserService;
+import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class UserServiceImpl implements UserService {
+
+    private static final Logger logger = LoggerFactory.getLogger(TrainingServiceImpl.class);
+    private UserRepository userRepository;
+
+    public UserServiceImpl(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
+    @Override
+    @Transactional
+    public UserCreationResult createUser(String firstname, String lastname) {
+        String username = makeUniqueUsername(firstname, lastname);
+        String password = RandomGenerator.generatePassword();
+
+        UserEntity userEntity = new UserEntity();
+        userEntity.setFirstname(firstname);
+        userEntity.setLastname(lastname);
+        userEntity.setUsername(username);
+        userEntity.setPassword(password);
+        userEntity.setActive(true);
+
+        userRepository.save(userEntity);
+        return new UserCreationResult(userEntity);
+    }
+
+    @Override
+    public User getUserByUsername(String username) {
+        Optional<UserEntity> optionalUserEntity = userRepository.findByUsername(username);
+        if (optionalUserEntity.isPresent()) {
+            UserEntity userEntity = optionalUserEntity.get();
+            User user = new User() {};
+            user.setFirstname(userEntity.getFirstname());
+            user.setLastname(userEntity.getLastname());
+            user.setUsername(userEntity.getUsername());
+            user.setPassword(userEntity.getPassword());
+            user.setActive(userEntity.isActive());
+            return user;
+        }
+        return null;
+    }
+
+    @Override
+    public String changePassword(String userId, String newPassword) {
+        UserEntity userEntity = userRepository.findById(userId).orElse(null);
+        if (userEntity != null) {
+            userEntity.setPassword(newPassword);
+            userRepository.save(userEntity);
+            return newPassword;
+        }
+        return null;
+    }
+
+    @Override
+    public boolean setActive(String userId, boolean active) {
+        UserEntity userEntity = userRepository.findById(userId).orElse(null);
+        if (userEntity != null) {
+            userEntity.setActive(active);
+            userRepository.save(userEntity);
+            return true;
+        }
+        return false;
+    }
+
+    private String makeUniqueUsername(String firstname, String lastname) {
+        String base = firstname + "." + lastname;
+        logger.debug("Generating unique username based on: {}", base);
+        if (!userRepository.existsByUsername(base)) {
+            return base;
+        }
+
+        List<String> similar = userRepository.findUsernameByUsernameStartingWith(base);
+        int max = similar.stream()
+                .map(u -> u.substring(base.length()))
+                .map(s -> {
+                    if (s.isEmpty()) return 0;
+                    try { return Integer.parseInt(s); }
+                    catch (NumberFormatException ex) { return 0; }
+                })
+                .max(Integer::compareTo)
+                .orElse(0);
+
+        String uniqueUsername = base + (max + 1);
+        logger.debug("Resolved unique username: {}", uniqueUsername);
+        return uniqueUsername;
+    }
+}

@@ -1,20 +1,19 @@
-package com.shyn9yskhan.gym_crm_system.model;
+package com.shyn9yskhan.gym_crm_system.domain;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 public class Training {
-    private String id;
+    private String traineeId;
     private String trainerId;
     private String name;
     private TrainingType type;
-    private LocalDateTime date;
-    private Duration duration;
+    private LocalDate date;
+    private int duration;
 
     public Training() {}
 
-    public Training(String id, String trainerId, String name, TrainingType type, LocalDateTime date, Duration duration) {
-        this.id = id;
+    public Training(String traineeId, String trainerId, String name, TrainingType type, LocalDate date, int duration) {
+        this.traineeId = traineeId;
         this.trainerId = trainerId;
         this.name = name;
         this.type = type;
@@ -22,12 +21,12 @@ public class Training {
         this.duration = duration;
     }
 
-    public String getId() {
-        return id;
+    public String getTraineeId() {
+        return traineeId;
     }
 
-    public void setId(String id) {
-        this.id = id;
+    public void setTraineeId(String traineeId) {
+        this.traineeId = traineeId;
     }
 
     public String getTrainerId() {
@@ -54,19 +53,19 @@ public class Training {
         this.type = type;
     }
 
-    public LocalDateTime getDate() {
+    public LocalDate getDate() {
         return date;
     }
 
-    public void setDate(LocalDateTime date) {
+    public void setDate(LocalDate date) {
         this.date = date;
     }
 
-    public Duration getDuration() {
+    public int getDuration() {
         return duration;
     }
 
-    public void setDuration(Duration duration) {
+    public void setDuration(int duration) {
         this.duration = duration;
     }
 }

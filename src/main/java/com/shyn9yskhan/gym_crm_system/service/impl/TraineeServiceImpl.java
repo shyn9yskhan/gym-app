@@ -1,114 +1,127 @@
 package com.shyn9yskhan.gym_crm_system.service.impl;
 
 import com.shyn9yskhan.gym_crm_system.dto.TraineeDto;
-import com.shyn9yskhan.gym_crm_system.model.Trainee;
+import com.shyn9yskhan.gym_crm_system.domain.Trainee;
+import com.shyn9yskhan.gym_crm_system.entity.TraineeEntity;
+import com.shyn9yskhan.gym_crm_system.entity.UserEntity;
 import com.shyn9yskhan.gym_crm_system.repository.TraineeRepository;
-import com.shyn9yskhan.gym_crm_system.service.RandomGenerator;
 import com.shyn9yskhan.gym_crm_system.service.TraineeService;
+import com.shyn9yskhan.gym_crm_system.service.UserCreationResult;
+import com.shyn9yskhan.gym_crm_system.service.UserService;
+import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.List;
+import java.util.Optional;
 
 @Service
 public class TraineeServiceImpl implements TraineeService {
 
     private static final Logger logger = LoggerFactory.getLogger(TraineeServiceImpl.class);
     private TraineeRepository traineeRepository;
+    private UserService userService;
 
-    public TraineeServiceImpl(TraineeRepository traineeRepository) {
+    public TraineeServiceImpl(TraineeRepository traineeRepository, UserService userService) {
         this.traineeRepository = traineeRepository;
+        this.userService = userService;
     }
 
     @Override
-    public Trainee createTrainee(TraineeDto traineeDto) {
+    @Transactional
+    public String createTrainee(TraineeDto traineeDto) {
         logger.debug("Creating new trainee from DTO: {}", traineeDto);
+
         String firstname = traineeDto.getFirstname();
         String lastname = traineeDto.getLastname();
-        String base = firstname + "." + lastname;
-        String username = makeUniqueUsername(base);
-
-        String password = RandomGenerator.generatePassword();
-        boolean isActive = true;
         LocalDate dateOfBirth = traineeDto.getDateOfBirth();
         String address = traineeDto.getAddress();
-        String userId = RandomGenerator.generateUserId();
 
-        Trainee trainee = new Trainee(firstname, lastname, username, password, isActive, dateOfBirth, address, userId);
-        logger.info("Generated trainee with username: {} and userId: {}", username, userId);
-        return traineeRepository.createTrainee(trainee);
+        UserCreationResult userCreationResult = userService.createUser(firstname, lastname);
+
+        TraineeEntity traineeEntity = new TraineeEntity();
+        traineeEntity.setDateOfBirth(dateOfBirth);
+        traineeEntity.setAddress(address);
+        traineeEntity.setUser(userCreationResult.userEntity());
+
+        traineeRepository.save(traineeEntity);
+        logger.info("Created trainee with userId: {}", traineeEntity.getId());
+        return traineeEntity.getId();
     }
 
     @Override
-    public Trainee updateTrainee(String traineeId, TraineeDto traineeDto) {
+    public String updateTrainee(String traineeId, LocalDate updatedDateOfBirth, String updatedAddress) {
         logger.debug("Updating trainee with ID: {}", traineeId);
-        Trainee existing = traineeRepository.getTrainee(traineeId);
-        if (existing == null) {
+        boolean isExists = traineeRepository.existsById(traineeId);
+        if (!isExists) {
             logger.warn("Trainee with ID: {} not found. Update aborted.", traineeId);
             return null;
         }
+        int updated = traineeRepository.updateTrainee(traineeId, updatedDateOfBirth, updatedAddress);
 
-        String firstname = traineeDto.getFirstname();
-        String lastname  = traineeDto.getLastname();
-        existing.setFirstname(firstname);
-        existing.setLastname(lastname);
-
-        String base = firstname + "." + lastname;
-        String newUsername = makeUniqueUsername(base);
-        existing.setUsername(newUsername);
-
-        existing.setDateOfBirth(traineeDto.getDateOfBirth());
-        existing.setAddress(traineeDto.getAddress());
-
-        Trainee updatedTrainee = traineeRepository.updateTrainee(traineeId, existing);
-        if (updatedTrainee == null) {
+        if (updated == 1) {
+            logger.info("Updated trainee: ID={}", traineeId);
+            return traineeId;
+        } else {
             logger.warn("Failed to update trainee with ID: {}", traineeId);
             return null;
         }
-        logger.info("Updated trainee: ID={}, new username={}", traineeId, newUsername);
-        return updatedTrainee;
     }
 
     @Override
-    public Trainee deleteTrainee(String traineeId) {
+    public String deleteTrainee(String traineeId) {
         logger.debug("Deleting trainee with ID: {}", traineeId);
-        Trainee deletedTrainee = traineeRepository.deleteTrainee(traineeId);
-        if (deletedTrainee == null) {
-            logger.warn("Failed to delete trainee with ID: {}", traineeId);
+        boolean isExists = traineeRepository.existsById(traineeId);
+        if (!isExists) {
+            logger.warn("Trainee with ID: {} not found. Delete aborted.", traineeId);
             return null;
-        } else {
-            logger.info("Successfully deleted trainee with ID: {}", traineeId);
-            return deletedTrainee;
         }
+        traineeRepository.deleteById(traineeId);
+        return traineeId;
     }
 
     @Override
     public Trainee getTrainee(String traineeId) {
         logger.debug("Fetching trainee with ID: {}", traineeId);
-        return traineeRepository.getTrainee(traineeId);
-    }
 
-    private String makeUniqueUsername(String base) {
-        logger.debug("Generating unique username based on: {}", base);
-        if (!traineeRepository.existsByUsername(base)) {
-            return base;
+        Optional<TraineeEntity> optionalTraineeEntity = traineeRepository.findById(traineeId);
+
+        if (optionalTraineeEntity.isEmpty()) {
+            logger.warn("Trainee not found with ID: {}" , traineeId);
+            return null;
         }
 
-        List<String> similar = traineeRepository.findUsernamesByBase(base);
-        int max = similar.stream()
-                .map(u -> u.substring(base.length()))
-                .map(s -> {
-                    if (s.isEmpty()) return 0;
-                    try { return Integer.parseInt(s); }
-                    catch (NumberFormatException ex) { return 0; }
-                })
-                .max(Integer::compareTo)
-                .orElse(0);
+        TraineeEntity traineeEntity = optionalTraineeEntity.get();
+        UserEntity userEntity = traineeEntity.getUser();
 
-        String uniqueUsername = base + (max + 1);
-        logger.debug("Resolved unique username: {}", uniqueUsername);
-        return uniqueUsername;
+        Trainee trainee = new Trainee();
+        trainee.setFirstname(userEntity.getFirstname());
+        trainee.setLastname(userEntity.getLastname());
+        trainee.setUsername(userEntity.getUsername());
+        trainee.setPassword(userEntity.getPassword());
+        trainee.setActive(userEntity.isActive());
+        trainee.setDateOfBirth(traineeEntity.getDateOfBirth());
+        trainee.setAddress(traineeEntity.getAddress());
+        trainee.setUserId(userEntity.getId());
+        return trainee;
+    }
+
+    @Override
+    public TraineeEntity getTraineeEntity(String traineeId) {
+        logger.debug("Fetching traineeEntity with ID: {}", traineeId);
+        Optional<TraineeEntity> optionalTraineeEntity = traineeRepository.findById(traineeId);
+        if (optionalTraineeEntity.isEmpty()) {
+            logger.warn("TraineeEntity not found with ID: {}" , traineeId);
+            return null;
+        }
+        TraineeEntity traineeEntity = optionalTraineeEntity.get();
+        UserEntity userEntity = traineeEntity.getUser();
+        return traineeEntity;
+    }
+
+    @Override
+    public TraineeEntity saveTrainee(TraineeEntity traineeEntity) {
+        return traineeRepository.save(traineeEntity);
     }
 }

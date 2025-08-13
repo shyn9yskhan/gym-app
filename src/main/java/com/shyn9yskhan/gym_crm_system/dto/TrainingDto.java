@@ -1,24 +1,33 @@
 package com.shyn9yskhan.gym_crm_system.dto;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 public class TrainingDto {
+    private String traineeId;
     private String trainerId;
     private String trainingName;
     private String trainingTypeName;
-    private LocalDateTime trainingDate;
-    private Duration trainingDuration;
+    private LocalDate trainingDate;
+    private int trainingDuration;
 
     public TrainingDto() {
     }
 
-    public TrainingDto(String trainerId, String trainingName, String trainingTypeName, LocalDateTime trainingDate, Duration trainingDuration) {
+    public TrainingDto(String traineeId, String trainerId, String trainingName, String trainingTypeName, LocalDate trainingDate, int trainingDuration) {
+        this.traineeId = traineeId;
         this.trainerId = trainerId;
         this.trainingName = trainingName;
         this.trainingTypeName = trainingTypeName;
         this.trainingDate = trainingDate;
         this.trainingDuration = trainingDuration;
+    }
+
+    public String getTraineeId() {
+        return traineeId;
+    }
+
+    public void setTraineeId(String traineeId) {
+        this.traineeId = traineeId;
     }
 
     public String getTrainerId() {
@@ -45,19 +54,19 @@ public class TrainingDto {
         this.trainingTypeName = trainingTypeName;
     }
 
-    public LocalDateTime getTrainingDate() {
+    public LocalDate getTrainingDate() {
         return trainingDate;
     }
 
-    public void setTrainingDate(LocalDateTime trainingDate) {
+    public void setTrainingDate(LocalDate trainingDate) {
         this.trainingDate = trainingDate;
     }
 
-    public Duration getTrainingDuration() {
+    public int getTrainingDuration() {
         return trainingDuration;
     }
 
-    public void setTrainingDuration(Duration trainingDuration) {
+    public void setTrainingDuration(int trainingDuration) {
         this.trainingDuration = trainingDuration;
     }
 }

@@ -1,4 +1,4 @@
-package com.shyn9yskhan.gym_crm_system.model;
+package com.shyn9yskhan.gym_crm_system.domain;
 
 import java.time.LocalDate;
 

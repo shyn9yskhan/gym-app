@@ -1,97 +1,126 @@
 package com.shyn9yskhan.gym_crm_system.service.impl;
 
+import com.shyn9yskhan.gym_crm_system.domain.TrainingType;
 import com.shyn9yskhan.gym_crm_system.dto.TrainerDto;
-import com.shyn9yskhan.gym_crm_system.model.Trainer;
-import com.shyn9yskhan.gym_crm_system.model.TrainingType;
+import com.shyn9yskhan.gym_crm_system.domain.Trainer;
+import com.shyn9yskhan.gym_crm_system.entity.TrainerEntity;
+import com.shyn9yskhan.gym_crm_system.entity.TrainingTypeEntity;
+import com.shyn9yskhan.gym_crm_system.entity.UserEntity;
 import com.shyn9yskhan.gym_crm_system.repository.TrainerRepository;
-import com.shyn9yskhan.gym_crm_system.service.RandomGenerator;
 import com.shyn9yskhan.gym_crm_system.service.TrainerService;
+import com.shyn9yskhan.gym_crm_system.service.TrainingTypeService;
+import com.shyn9yskhan.gym_crm_system.service.UserCreationResult;
+import com.shyn9yskhan.gym_crm_system.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import java.util.Optional;
 
 @Service
 public class TrainerServiceImpl implements TrainerService {
 
     private static final Logger logger = LoggerFactory.getLogger(TrainerServiceImpl.class);
     private TrainerRepository trainerRepository;
+    private UserService userService;
+    private TrainingTypeService trainingTypeService;
 
-    public TrainerServiceImpl(TrainerRepository trainerRepository) {
+    public TrainerServiceImpl(TrainerRepository trainerRepository, UserService userService, TrainingTypeService trainingTypeService) {
         this.trainerRepository = trainerRepository;
+        this.userService = userService;
+        this.trainingTypeService = trainingTypeService;
     }
 
-    public Trainer createTrainer(TrainerDto trainerDto) {
+    @Override
+    public String createTrainer(TrainerDto trainerDto) {
         logger.info("Creating trainer: {} {}", trainerDto.getFirstname(), trainerDto.getLastname());
+
         String firstname = trainerDto.getFirstname();
         String lastname = trainerDto.getLastname();
-        String base = firstname + "." + lastname;
-        String username = makeUniqueUsername(base);
-
-        String password = RandomGenerator.generatePassword();
-        boolean isActive = true;
         String trainingTypeName = trainerDto.getTrainingTypeName();
-        TrainingType trainingType = new TrainingType(trainingTypeName);
-        String userId = RandomGenerator.generateUserId();
 
-        Trainer trainer = new Trainer(firstname, lastname, username, password, isActive, trainingType, userId);
-        Trainer created = trainerRepository.createTrainer(trainer);
-        logger.info("Trainer created with userId={}, username={}", created.getUserId(), created.getUsername());
-        return created;
-    }
+        UserCreationResult userCreationResult = userService.createUser(firstname, lastname);
 
-    public Trainer updateTrainer(String trainerId, TrainerDto trainerDTO) {
-        logger.info("Updating trainer with ID: {}", trainerId);
-        Trainer existing = trainerRepository.getTrainer(trainerId);
-        if (existing == null) {
-            logger.warn("Trainer not found for ID: {}", trainerId);
+        TrainerEntity trainerEntity = new TrainerEntity();
+
+        TrainingTypeEntity trainingTypeEntity = trainingTypeService.getTrainingTypeByName(trainingTypeName);
+        if (trainingTypeEntity == null) {
             return null;
         }
 
-        String firstname = trainerDTO.getFirstname();
-        String lastname = trainerDTO.getLastname();
-        String trainingTypeName = trainerDTO.getTrainingTypeName();
-        TrainingType trainingType = new TrainingType(trainingTypeName);
-        String base = firstname + "." + lastname;
-        String username = makeUniqueUsername(base);
+        trainerEntity.setSpecialization(trainingTypeEntity);
+        trainerEntity.setUser(userCreationResult.userEntity());
 
-        existing.setFirstname(firstname);
-        existing.setLastname(lastname);
-        existing.setUsername(username);
-        existing.setSpecialization(trainingType);
+        trainerRepository.save(trainerEntity);
+        logger.info("Trainer created with userId={}", trainerEntity.getId());
+        return trainerEntity.getId();
+    }
 
-        Trainer updatedTrainer = trainerRepository.updateTrainer(trainerId, existing);
-        if (updatedTrainer == null) {
+    @Override
+    public String updateTrainer(String trainerId, String updatedTrainingTypeName) {
+        logger.info("Updating trainer with ID: {}", trainerId);
+
+        boolean isExists = trainerRepository.existsById(trainerId);
+        if (!isExists) {
+            logger.warn("Trainee with ID: {} not found. Update aborted.", trainerId);
+            return null;
+        }
+
+        TrainingTypeEntity trainingTypeEntity = trainingTypeService.getTrainingTypeByName(updatedTrainingTypeName);
+        if (trainingTypeEntity == null) {
+            return null;
+        }
+
+        int updated = trainerRepository.updateTrainerSpecialization(trainerId, trainingTypeEntity);
+
+        if (updated == 1) {
+            logger.info("Trainer updated successfully: {}", trainerId);
+            return trainerId;
+        } else {
             logger.warn("Failed to update trainer: {}", trainerId);
             return null;
-        } else {
-            logger.info("Trainer updated successfully: {}", trainerId);
-            return updatedTrainer;
         }
     }
 
+    @Override
     public Trainer getTrainer(String trainerId) {
         logger.info("Retrieving trainer with ID: {}", trainerId);
-        return trainerRepository.getTrainer(trainerId);
-    }
 
-    private String makeUniqueUsername(String base) {
-        if (!trainerRepository.existsByUsername(base)) {
-            return base;
+        Optional<TrainerEntity> optionalTrainerEntity = trainerRepository.findById(trainerId);
+
+        if (optionalTrainerEntity.isEmpty()) {
+            logger.warn("Trainer with ID: {} not found.", trainerId);
+            return null;
         }
 
-        List<String> similar = trainerRepository.findUsernamesByBase(base);
-        int max = similar.stream()
-                .map(u -> u.substring(base.length()))
-                .map(s -> {
-                    if (s.isEmpty()) return 0;
-                    try { return Integer.parseInt(s); }
-                    catch (NumberFormatException ex) { return 0; }
-                })
-                .max(Integer::compareTo)
-                .orElse(0);
+        TrainerEntity trainerEntity = optionalTrainerEntity.get();
+        UserEntity userEntity = trainerEntity.getUser();
 
-        return base + (max + 1);
+        Trainer trainer = new Trainer();
+        trainer.setFirstname(userEntity.getFirstname());
+        trainer.setLastname(userEntity.getLastname());
+        trainer.setUsername(userEntity.getUsername());
+        trainer.setPassword(userEntity.getPassword());
+        trainer.setActive(userEntity.isActive());
+        trainer.setSpecialization(new TrainingType(trainerEntity.getSpecialization().getTrainingTypeName()));
+        return trainer;
+    }
+
+    @Override
+    public TrainerEntity getTrainerEntity(String trainerId) {
+        logger.info("Retrieving trainerEntity with ID: {}", trainerId);
+        Optional<TrainerEntity> optionalTrainerEntity = trainerRepository.findById(trainerId);
+        if (optionalTrainerEntity.isEmpty()) {
+            logger.warn("TrainerEntity with ID: {} not found.", trainerId);
+            return null;
+        }
+        TrainerEntity trainerEntity = optionalTrainerEntity.get();
+        UserEntity userEntity = trainerEntity.getUser();
+        return trainerEntity;
+    }
+
+    @Override
+    public TrainerEntity saveTrainer(TrainerEntity trainerEntity) {
+        return trainerRepository.save(trainerEntity);
     }
 }

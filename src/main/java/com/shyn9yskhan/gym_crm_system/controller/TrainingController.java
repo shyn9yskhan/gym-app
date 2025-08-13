@@ -1,7 +1,7 @@
 package com.shyn9yskhan.gym_crm_system.controller;
 
 import com.shyn9yskhan.gym_crm_system.dto.TrainingDto;
-import com.shyn9yskhan.gym_crm_system.model.Training;
+import com.shyn9yskhan.gym_crm_system.domain.Training;
 import com.shyn9yskhan.gym_crm_system.service.TrainingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,11 +26,11 @@ public class TrainingController {
     }
 
     @PostMapping
-    public ResponseEntity<Training> createTraining(@RequestBody TrainingDto trainingDto) {
+    public ResponseEntity<String> createTraining(@RequestBody TrainingDto trainingDto) {
         logger.info("Creating new training");
-        Training created = trainingService.createTraining(trainingDto);
-        logger.info("Training created: {}", created);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+        String createdTrainingId = trainingService.createTraining(trainingDto);
+        logger.info("Training created: {}", createdTrainingId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdTrainingId);
     }
 
     @GetMapping("/{trainingId}")
