@@ -1,7 +1,7 @@
 package com.shyn9yskhan.gym_crm_system.service.impl;
 
 import com.shyn9yskhan.gym_crm_system.domain.TrainingType;
-import com.shyn9yskhan.gym_crm_system.dto.TrainingDto;
+import com.shyn9yskhan.gym_crm_system.dto.*;
 import com.shyn9yskhan.gym_crm_system.domain.Training;
 import com.shyn9yskhan.gym_crm_system.entity.TraineeEntity;
 import com.shyn9yskhan.gym_crm_system.entity.TrainerEntity;
@@ -18,6 +18,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -38,21 +40,20 @@ public class TrainingServiceImpl implements TrainingService {
 
     @Override
     @Transactional
-    public String createTraining(TrainingDto trainingDto) {
-        logger.info("Creating new training: {}", trainingDto.getTrainingName());
+    public String addTraining(AddTrainingRequest addTrainingRequest) {
+        logger.info("Creating new training: {}", addTrainingRequest.getTrainingName());
 
-        String traineeId = trainingDto.getTraineeId();
-        String trainerId = trainingDto.getTrainerId();
-        String trainingName = trainingDto.getTrainingName();
-        String trainingTypeName = trainingDto.getTrainingTypeName();
-        LocalDate trainingDate = trainingDto.getTrainingDate();
-        int trainingDuration = trainingDto.getTrainingDuration();
+        String traineeUsername = addTrainingRequest.getTraineeUsername();
+        String trainerUsername = addTrainingRequest.getTrainerUsername();
+        String trainingName = addTrainingRequest.getTrainingName();
+        LocalDate trainingDate = addTrainingRequest.getTrainingDate();
+        int trainingDuration = addTrainingRequest.getTrainingDuration();
 
-        TraineeEntity traineeEntity = traineeService.getTraineeEntity(traineeId);
-        TrainerEntity trainerEntity = trainerService.getTrainerEntity(trainerId);
-        TrainingTypeEntity trainingTypeEntity = trainingTypeService.getTrainingTypeByName(trainingTypeName);
+        TraineeEntity traineeEntity = traineeService.getTraineeEntityByUsername(traineeUsername);
+        TrainerEntity trainerEntity = trainerService.getTrainerEntityByUsername(trainerUsername);
+        TrainingTypeEntity trainingTypeEntity = trainerEntity.getSpecialization();
 
-        if (traineeEntity != null && trainerEntity != null && trainingTypeEntity != null) {
+        if (traineeEntity != null && trainingTypeEntity != null) {
             TrainingEntity trainingEntity = new TrainingEntity();
 
             trainingEntity.setTrainee(traineeEntity);
@@ -72,7 +73,6 @@ public class TrainingServiceImpl implements TrainingService {
             logger.info("Training created with ID: {}", trainingEntity.getId());
             return trainingEntity.getId();
         }
-
         return null;
     }
 
@@ -101,5 +101,94 @@ public class TrainingServiceImpl implements TrainingService {
         training.setDuration(trainingDuration);
 
         return training;
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public List<GetTraineeTrainingsListResponse> getTraineeTrainingsList(GetTraineeTrainingsListRequest request) {
+        if (request == null || request.getUsername() == null || request.getUsername().isBlank()) {
+            logger.warn("Trainee username is required for getTraineeTrainingsList");
+            return new ArrayList<>();
+        }
+
+        String traineeUsername = request.getUsername();
+        LocalDate fromDate = request.getPeriodFrom();
+        LocalDate toDate = request.getPeriodTo();
+        String trainerUsername = request.getTrainerUsername();
+        String trainingTypeName = request.getTrainingType() != null ? request.getTrainingType().getTrainingTypeName() : null;
+
+        List<TrainingEntity> trainings = trainingRepository.findTraineeTrainings(
+                traineeUsername, fromDate, toDate, trainerUsername, trainingTypeName
+        );
+
+        List<GetTraineeTrainingsListResponse> responses = new ArrayList<>(trainings.size());
+        for (TrainingEntity trainingEntity : trainings) {
+            responses.add(mapTrainingEntityToTraineeResponse(trainingEntity));
+        }
+        return responses;
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public List<GetTrainerTrainingsListResponse> getTrainerTrainingsList(GetTrainerTrainingsListRequest request) {
+        if (request == null || request.getTrainerUsername() == null || request.getTrainerUsername().isBlank()) {
+            logger.warn("Trainer username is required for getTrainerTrainingsList");
+            return new ArrayList<>();
+        }
+
+        String trainerUsername = request.getTrainerUsername();
+        LocalDate fromDate = request.getPeriodFrom();
+        LocalDate toDate = request.getPeriodTo();
+        String traineeUsername = request.getTraineeUsername();
+
+        List<TrainingEntity> trainings = trainingRepository.findTrainerTrainings(
+                trainerUsername, fromDate, toDate, traineeUsername
+        );
+
+        List<GetTrainerTrainingsListResponse> responses = new ArrayList<>(trainings.size());
+        for (TrainingEntity trainingEntity : trainings) {
+            responses.add(mapTrainingEntityToTrainerResponse(trainingEntity));
+        }
+        return responses;
+    }
+
+    private GetTraineeTrainingsListResponse mapTrainingEntityToTraineeResponse(TrainingEntity entity) {
+        GetTraineeTrainingsListResponse dto = new GetTraineeTrainingsListResponse();
+
+        TrainerEntity trainerEntity = entity.getTrainer();
+        if (trainerEntity != null && trainerEntity.getUser() != null) {
+            dto.setTrainerUsername(trainerEntity.getUser().getUsername());
+        }
+
+        dto.setTrainingDate(entity.getTrainingDate());
+        dto.setTrainingDuration(entity.getTrainingDuration());
+        dto.setTrainingName(entity.getTrainingName());
+
+        TrainingTypeEntity tt = entity.getTrainingType();
+        if (tt != null) {
+            dto.setTrainingType(new TrainingTypeDto(tt.getId(), tt.getTrainingTypeName()));
+        }
+
+        return dto;
+    }
+
+    private GetTrainerTrainingsListResponse mapTrainingEntityToTrainerResponse(TrainingEntity entity) {
+        GetTrainerTrainingsListResponse dto = new GetTrainerTrainingsListResponse();
+
+        dto.setTrainingName(entity.getTrainingName());
+        dto.setTrainingDate(entity.getTrainingDate());
+        dto.setTrainingDuration(entity.getTrainingDuration());
+
+        TrainingTypeEntity tt = entity.getTrainingType();
+        if (tt != null) {
+            dto.setTrainingType(new TrainingTypeDto(tt.getId(), tt.getTrainingTypeName()));
+        }
+
+        TraineeEntity traineeEntity = entity.getTrainee();
+        if (traineeEntity != null && traineeEntity.getUser() != null) {
+            dto.setTraineeUsername(traineeEntity.getUser().getUsername());
+        }
+
+        return dto;
     }
 }

@@ -1,25 +1,27 @@
 package com.shyn9yskhan.gym_crm_system.dto;
 
 import java.time.LocalDate;
+import java.util.List;
 
-public class UpdateTraineeRequest {
+public class TraineeProfile {
     private String username;
     private String firstname;
     private String lastname;
     private LocalDate dateOfBirth;
     private String address;
     private boolean isActive;
+    private List<TrainerProfileDto> trainers;
 
-    public UpdateTraineeRequest() {
-    }
+    public TraineeProfile() {}
 
-    public UpdateTraineeRequest(String username, String firstname, String lastname, LocalDate dateOfBirth, String address, boolean isActive) {
+    public TraineeProfile(String username, String firstname, String lastname, LocalDate dateOfBirth, String address, boolean isActive, List<TrainerProfileDto> trainers) {
         this.username = username;
         this.firstname = firstname;
         this.lastname = lastname;
         this.dateOfBirth = dateOfBirth;
         this.address = address;
         this.isActive = isActive;
+        this.trainers = trainers;
     }
 
     public String getUsername() {
@@ -68,5 +70,13 @@ public class UpdateTraineeRequest {
 
     public void setActive(boolean active) {
         isActive = active;
+    }
+
+    public List<TrainerProfileDto> getTrainers() {
+        return trainers;
+    }
+
+    public void setTrainers(List<TrainerProfileDto> trainers) {
+        this.trainers = trainers;
     }
 }

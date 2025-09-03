@@ -1,6 +1,7 @@
 package com.shyn9yskhan.gym_crm_system.service.impl;
 
 import com.shyn9yskhan.gym_crm_system.domain.User;
+import com.shyn9yskhan.gym_crm_system.dto.UserDto;
 import com.shyn9yskhan.gym_crm_system.entity.UserEntity;
 import com.shyn9yskhan.gym_crm_system.repository.UserRepository;
 import com.shyn9yskhan.gym_crm_system.service.RandomGenerator;
@@ -42,6 +43,36 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public UserDto updateUser(UserDto userDto) {
+        String username = userDto.getUsername();
+        String firstname = userDto.getFirstname();
+        String lastname = userDto.getLastname();
+        boolean isActive = userDto.isActive();
+
+        UserEntity userEntity = getUserEntityByUsername(username);
+        userEntity.setFirstname(firstname);
+        userEntity.setLastname(lastname);
+        userEntity.setUsername(makeUniqueUsername(firstname, lastname));
+        userEntity.setActive(isActive);
+
+        userRepository.save(userEntity);
+        return userDto;
+    }
+
+    @Override
+    public String deleteUser(String username) {
+        boolean isExists = userRepository.existsByUsername(username);
+        if (isExists) {
+            long deletingResult = userRepository.deleteByUsername(username);
+            if (deletingResult > 0) {
+                return username;
+            }
+            else return null;
+        }
+        else return null;
+    }
+
+    @Override
     public User getUserByUsername(String username) {
         Optional<UserEntity> optionalUserEntity = userRepository.findByUsername(username);
         if (optionalUserEntity.isPresent()) {
@@ -58,25 +89,48 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public String changePassword(String userId, String newPassword) {
-        UserEntity userEntity = userRepository.findById(userId).orElse(null);
+    public String changePassword(String username, String oldPassword, String newPassword) {
+        UserEntity userEntity = userRepository.findByUsername(username).orElse(null);
         if (userEntity != null) {
-            userEntity.setPassword(newPassword);
-            userRepository.save(userEntity);
-            return newPassword;
+            if (userEntity.getPassword().equals(oldPassword)) {
+                userEntity.setPassword(newPassword);
+                userRepository.save(userEntity);
+                return newPassword;
+            }
+            return null;
         }
         return null;
     }
 
     @Override
-    public boolean setActive(String userId, boolean active) {
+    public String setActive(String userId, boolean isActive) {
         UserEntity userEntity = userRepository.findById(userId).orElse(null);
         if (userEntity != null) {
-            userEntity.setActive(active);
+            userEntity.setActive(isActive);
             userRepository.save(userEntity);
-            return true;
+            return userId;
         }
-        return false;
+        return null;
+    }
+
+    @Override
+    public String setActiveByUsername(String username, boolean isActive) {
+        UserEntity userEntity = userRepository.findByUsername(username).orElse(null);
+        if (userEntity != null) {
+            userEntity.setActive(isActive);
+            userRepository.save(userEntity);
+            return username;
+        }
+        return null;
+    }
+
+    public UserEntity getUserEntityByUsername(String username) {
+        Optional<UserEntity> optionalUserEntity = userRepository.findByUsername(username);
+        if (optionalUserEntity.isPresent()) {
+            UserEntity userEntity = optionalUserEntity.get();
+            return userEntity;
+        }
+        return null;
     }
 
     private String makeUniqueUsername(String firstname, String lastname) {

@@ -10,4 +10,5 @@ public interface UserRepository extends JpaRepository<UserEntity, String> {
     boolean existsByUsername(String username);
     List<String> findUsernameByUsernameStartingWith(String base);
     Optional<UserEntity> findByUsername(String username);
+    long deleteByUsername(String username);
 }

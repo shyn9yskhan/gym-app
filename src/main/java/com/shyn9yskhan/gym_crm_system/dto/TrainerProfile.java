@@ -1,21 +1,24 @@
 package com.shyn9yskhan.gym_crm_system.dto;
 
-public class UpdateTrainerRequest {
+import java.util.List;
+
+public class TrainerProfile {
     private String username;
     private String firstname;
     private String lastname;
     private TrainingTypeDto specialization;
     private boolean isActive;
+    private List<TraineeProfileDto> trainees;
 
-    public UpdateTrainerRequest() {
-    }
+    public TrainerProfile() {}
 
-    public UpdateTrainerRequest(String username, String firstname, String lastname, TrainingTypeDto specialization, boolean isActive) {
+    public TrainerProfile(String username, String firstname, String lastname, TrainingTypeDto specialization, boolean isActive, List<TraineeProfileDto> trainees) {
         this.username = username;
         this.firstname = firstname;
         this.lastname = lastname;
         this.specialization = specialization;
         this.isActive = isActive;
+        this.trainees = trainees;
     }
 
     public String getUsername() {
@@ -56,5 +59,13 @@ public class UpdateTrainerRequest {
 
     public void setActive(boolean active) {
         isActive = active;
+    }
+
+    public List<TraineeProfileDto> getTrainees() {
+        return trainees;
+    }
+
+    public void setTrainees(List<TraineeProfileDto> trainees) {
+        this.trainees = trainees;
     }
 }

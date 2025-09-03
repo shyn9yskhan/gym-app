@@ -1,20 +1,17 @@
 package com.shyn9yskhan.gym_crm_system.dto;
 
-public class UpdateTrainerRequest {
+public class UserDto {
     private String username;
     private String firstname;
     private String lastname;
-    private TrainingTypeDto specialization;
     private boolean isActive;
 
-    public UpdateTrainerRequest() {
-    }
+    public UserDto() {}
 
-    public UpdateTrainerRequest(String username, String firstname, String lastname, TrainingTypeDto specialization, boolean isActive) {
+    public UserDto(String username, String firstname, String lastname, boolean isActive) {
         this.username = username;
         this.firstname = firstname;
         this.lastname = lastname;
-        this.specialization = specialization;
         this.isActive = isActive;
     }
 
@@ -40,14 +37,6 @@ public class UpdateTrainerRequest {
 
     public void setLastname(String lastname) {
         this.lastname = lastname;
-    }
-
-    public TrainingTypeDto getSpecialization() {
-        return specialization;
-    }
-
-    public void setSpecialization(TrainingTypeDto specialization) {
-        this.specialization = specialization;
     }
 
     public boolean isActive() {
