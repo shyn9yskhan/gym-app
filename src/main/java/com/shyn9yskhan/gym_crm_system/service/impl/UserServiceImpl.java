@@ -1,5 +1,6 @@
 package com.shyn9yskhan.gym_crm_system.service.impl;
 
+import com.shyn9yskhan.gym_crm_system.AppMetrics;
 import com.shyn9yskhan.gym_crm_system.domain.User;
 import com.shyn9yskhan.gym_crm_system.dto.UserDto;
 import com.shyn9yskhan.gym_crm_system.entity.UserEntity;
@@ -20,9 +21,11 @@ public class UserServiceImpl implements UserService {
 
     private static final Logger logger = LoggerFactory.getLogger(TrainingServiceImpl.class);
     private UserRepository userRepository;
+    private AppMetrics metrics;
 
-    public UserServiceImpl(UserRepository userRepository) {
+    public UserServiceImpl(UserRepository userRepository, AppMetrics metrics) {
         this.userRepository = userRepository;
+        this.metrics = metrics;
     }
 
     @Override
@@ -39,6 +42,7 @@ public class UserServiceImpl implements UserService {
         userEntity.setActive(true);
 
         userRepository.save(userEntity);
+        metrics.userCreated();
         return new UserCreationResult(userEntity);
     }
 
@@ -56,6 +60,7 @@ public class UserServiceImpl implements UserService {
         userEntity.setActive(isActive);
 
         userRepository.save(userEntity);
+        metrics.userUpdated();
         return userDto;
     }
 
@@ -65,6 +70,7 @@ public class UserServiceImpl implements UserService {
         if (isExists) {
             long deletingResult = userRepository.deleteByUsername(username);
             if (deletingResult > 0) {
+                metrics.userDeleted();
                 return username;
             }
             else return null;

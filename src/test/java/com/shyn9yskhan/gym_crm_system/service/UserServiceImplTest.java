@@ -1,5 +1,6 @@
 package com.shyn9yskhan.gym_crm_system.service;
 
+import com.shyn9yskhan.gym_crm_system.AppMetrics;
 import com.shyn9yskhan.gym_crm_system.entity.UserEntity;
 import com.shyn9yskhan.gym_crm_system.repository.UserRepository;
 import com.shyn9yskhan.gym_crm_system.service.impl.UserServiceImpl;
@@ -13,22 +14,20 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.never;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceImplTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private AppMetrics metrics;
 
     @InjectMocks
     private UserServiceImpl service;
@@ -41,14 +40,17 @@ class UserServiceImplTest {
 
         when(userRepository.existsByUsername(base)).thenReturn(false);
         when(userRepository.save(any(UserEntity.class))).thenAnswer(i -> i.getArgument(0));
+
         UserCreationResult result = service.createUser(firstname, lastname);
 
         assertNotNull(result);
         UserEntity saved = result.userEntity();
         assertNotNull(saved);
         assertEquals(base, saved.getUsername());
-        assertNotNull(saved.getPassword()); // password is generated, value not asserted
+        assertNotNull(saved.getPassword()); // generated password exists
+
         verify(userRepository, times(1)).save(any(UserEntity.class));
+        verify(metrics, times(1)).userCreated();
     }
 
     @Test
@@ -67,7 +69,9 @@ class UserServiceImplTest {
         UserEntity saved = result.userEntity();
         assertNotNull(saved);
         assertEquals("John.Doe3", saved.getUsername());
+
         verify(userRepository, times(1)).save(any(UserEntity.class));
+        verify(metrics, times(1)).userCreated();
     }
 
     @Test
@@ -79,6 +83,7 @@ class UserServiceImplTest {
         ue.setUsername(username);
         ue.setPassword("pw");
         ue.setActive(true);
+
         when(userRepository.findByUsername(username)).thenReturn(Optional.of(ue));
         var user = service.getUserByUsername(username);
 
@@ -99,17 +104,19 @@ class UserServiceImplTest {
     }
 
     @Test
-    void changePassword_whenUserExists_updatesAndReturnsNewPassword() {
-        String userId = "u-1";
+    void changePassword_whenUserExists_andOldMatches_updatesAndReturnsNewPassword() {
+        String username = "john.doe";
+        String oldPassword = "old";
         String newPassword = "new-pass-123";
 
         UserEntity ue = new UserEntity();
-        ue.setId(userId);
-        ue.setPassword("old");
+        ue.setUsername(username);
+        ue.setPassword(oldPassword);
 
-        when(userRepository.findById(userId)).thenReturn(Optional.of(ue));
+        when(userRepository.findByUsername(username)).thenReturn(Optional.of(ue));
         when(userRepository.save(any(UserEntity.class))).thenAnswer(i -> i.getArgument(0));
-        String returned = service.changePassword(userId, newPassword);
+
+        String returned = service.changePassword(username, oldPassword, newPassword);
 
         assertEquals(newPassword, returned);
         ArgumentCaptor<UserEntity> captor = ArgumentCaptor.forClass(UserEntity.class);
@@ -118,14 +125,28 @@ class UserServiceImplTest {
     }
 
     @Test
-    void changePassword_whenUserNotFound_returnsNull() {
-        when(userRepository.findById("nope")).thenReturn(Optional.empty());
-        assertNull(service.changePassword("nope", "x"));
+    void changePassword_whenUserExists_butOldDoesNotMatch_returnsNullAndDoesNotSave() {
+        String username = "john.doe";
+        UserEntity ue = new UserEntity();
+        ue.setUsername(username);
+        ue.setPassword("different-old");
+
+        when(userRepository.findByUsername(username)).thenReturn(Optional.of(ue));
+
+        String returned = service.changePassword(username, "old", "new");
+        assertNull(returned);
         verify(userRepository, never()).save(any());
     }
 
     @Test
-    void setActive_whenUserExists_updatesAndReturnsTrue() {
+    void changePassword_whenUserNotFound_returnsNull() {
+        when(userRepository.findByUsername("nope")).thenReturn(Optional.empty());
+        assertNull(service.changePassword("nope", "a", "b"));
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void setActive_whenUserExists_updatesAndReturnsUserId() {
         String userId = "u-2";
         UserEntity ue = new UserEntity();
         ue.setId(userId);
@@ -134,18 +155,18 @@ class UserServiceImplTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(ue));
         when(userRepository.save(any(UserEntity.class))).thenAnswer(i -> i.getArgument(0));
 
-        boolean result = service.setActive(userId, true);
+        String result = service.setActive(userId, true);
 
-        assertTrue(result);
+        assertEquals(userId, result);
         ArgumentCaptor<UserEntity> captor = ArgumentCaptor.forClass(UserEntity.class);
         verify(userRepository).save(captor.capture());
         assertTrue(captor.getValue().isActive());
     }
 
     @Test
-    void setActive_whenUserNotFound_returnsFalse() {
+    void setActive_whenUserNotFound_returnsNull() {
         when(userRepository.findById("nope")).thenReturn(Optional.empty());
-        assertFalse(service.setActive("nope", true));
+        assertNull(service.setActive("nope", true));
         verify(userRepository, never()).save(any());
     }
 }

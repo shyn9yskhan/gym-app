@@ -1,5 +1,6 @@
 package com.shyn9yskhan.gym_crm_system.service.impl;
 
+import com.shyn9yskhan.gym_crm_system.client.TraineeClient;
 import com.shyn9yskhan.gym_crm_system.dto.*;
 import com.shyn9yskhan.gym_crm_system.domain.Trainee;
 import com.shyn9yskhan.gym_crm_system.entity.TraineeEntity;
@@ -10,6 +11,7 @@ import com.shyn9yskhan.gym_crm_system.service.*;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -21,15 +23,11 @@ public class TraineeServiceImpl implements TraineeService {
     private static final Logger logger = LoggerFactory.getLogger(TraineeServiceImpl.class);
 
     private final TraineeRepository traineeRepository;
-    private final UserService userService;
-    private final TrainerService trainerService;
-    private final TrainingService trainingService;
+    private final TraineeClient traineeClient;
 
-    public TraineeServiceImpl(TraineeRepository traineeRepository, UserService userService, TrainerService trainerService, TrainingService trainingService) {
+    public TraineeServiceImpl(TraineeRepository traineeRepository, @Lazy TraineeClient traineeClient) {
         this.traineeRepository = traineeRepository;
-        this.userService = userService;
-        this.trainerService = trainerService;
-        this.trainingService = trainingService;
+        this.traineeClient = traineeClient;
     }
 
     @Override
@@ -42,7 +40,7 @@ public class TraineeServiceImpl implements TraineeService {
         LocalDate dateOfBirth = traineeDto.getDateOfBirth();
         String address = traineeDto.getAddress();
 
-        UserCreationResult userCreationResult = userService.createUser(firstname, lastname);
+        UserCreationResult userCreationResult = traineeClient.userService_createUser(firstname, lastname);
 
         TraineeEntity traineeEntity = new TraineeEntity();
         traineeEntity.setDateOfBirth(dateOfBirth);
@@ -83,7 +81,7 @@ public class TraineeServiceImpl implements TraineeService {
         userDto.setActive(updateTraineeRequest.isActive());
 
         int traineeUpdateCount = traineeRepository.updateTrainee(traineeId, updatedDateOfBirth, updatedAddress);
-        UserDto updatedUser = userService.updateUser(userDto);
+        UserDto updatedUser = traineeClient.userService_updateUser(userDto);
 
         if (traineeUpdateCount == 1 && updatedUser != null) {
             return getTraineeProfileById(traineeId);
@@ -106,7 +104,7 @@ public class TraineeServiceImpl implements TraineeService {
         }
 
         long deleted = traineeRepository.deleteByUser_Username(username);
-        String userDeleteResult = userService.deleteUser(username); // keep current behaviour
+        String userDeleteResult = traineeClient.userService_deleteUser(username);
 
         if (deleted > 0 && userDeleteResult != null) {
             logger.info("Deleted trainee-row(s) for username: {} (rows={})", username, deleted);
@@ -177,7 +175,7 @@ public class TraineeServiceImpl implements TraineeService {
 
         if (optionalTraineeEntity.isPresent()) {
             TraineeEntity traineeEntity = optionalTraineeEntity.get();
-            Set<TrainerEntity> trainerEntities = new HashSet<>(trainerService.findAllByUserUsernameIn(trainersUsernames));
+            Set<TrainerEntity> trainerEntities = new HashSet<>(traineeClient.trainerService_findAllByUserUsernameIn(trainersUsernames));
             traineeEntity.setTrainers(trainerEntities);
             traineeRepository.save(traineeEntity);
 
@@ -203,13 +201,13 @@ public class TraineeServiceImpl implements TraineeService {
 
     @Override
     public List<GetTraineeTrainingsListResponse> getTraineeTrainingsList(GetTraineeTrainingsListRequest getTraineeTrainingsListRequest) {
-        return trainingService.getTraineeTrainingsList(getTraineeTrainingsListRequest);
+        return traineeClient.trainingService_getTraineeTrainingsList(getTraineeTrainingsListRequest);
     }
 
     @Override
     public String updateTraineeActivation(String username, boolean isActive) {
         boolean isExists = traineeRepository.existsByUserUsername(username);
-        if (isExists) return userService.setActiveByUsername(username, isActive);
+        if (isExists) return traineeClient.userService_setActiveByUsername(username, isActive);
         return null;
     }
 

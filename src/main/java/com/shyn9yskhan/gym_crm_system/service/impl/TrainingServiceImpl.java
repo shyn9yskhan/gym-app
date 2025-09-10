@@ -51,9 +51,9 @@ public class TrainingServiceImpl implements TrainingService {
 
         TraineeEntity traineeEntity = traineeService.getTraineeEntityByUsername(traineeUsername);
         TrainerEntity trainerEntity = trainerService.getTrainerEntityByUsername(trainerUsername);
-        TrainingTypeEntity trainingTypeEntity = trainerEntity.getSpecialization();
+        TrainingTypeEntity trainingTypeEntity = (trainerEntity != null) ? trainerEntity.getSpecialization() : null;
 
-        if (traineeEntity != null && trainingTypeEntity != null) {
+        if (traineeEntity != null && trainerEntity != null && trainingTypeEntity != null) {
             TrainingEntity trainingEntity = new TrainingEntity();
 
             trainingEntity.setTrainee(traineeEntity);

@@ -11,6 +11,7 @@ import com.shyn9yskhan.gym_crm_system.repository.TrainerRepository;
 import com.shyn9yskhan.gym_crm_system.service.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -25,7 +26,7 @@ public class TrainerServiceImpl implements TrainerService {
     private TrainingTypeService trainingTypeService;
     private TrainingService trainingService;
 
-    public TrainerServiceImpl(TrainerRepository trainerRepository, UserService userService, TraineeService traineeService, TrainingTypeService trainingTypeService, TrainingService trainingService) {
+    public TrainerServiceImpl(TrainerRepository trainerRepository, UserService userService, TraineeService traineeService, TrainingTypeService trainingTypeService, @Lazy TrainingService trainingService) {
         this.trainerRepository = trainerRepository;
         this.userService = userService;
         this.traineeService = traineeService;

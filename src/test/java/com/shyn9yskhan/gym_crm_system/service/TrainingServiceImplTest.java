@@ -1,6 +1,6 @@
 package com.shyn9yskhan.gym_crm_system.service;
 
-import com.shyn9yskhan.gym_crm_system.dto.TrainingDto;
+import com.shyn9yskhan.gym_crm_system.dto.AddTrainingRequest;
 import com.shyn9yskhan.gym_crm_system.domain.Training;
 import com.shyn9yskhan.gym_crm_system.entity.TraineeEntity;
 import com.shyn9yskhan.gym_crm_system.entity.TrainerEntity;
@@ -19,14 +19,14 @@ import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,10 +34,13 @@ class TrainingServiceImplTest {
 
     @Mock
     private TrainingRepository trainingRepository;
+
     @Mock
     private TraineeService traineeService;
+
     @Mock
     private TrainerService trainerService;
+
     @Mock
     private TrainingTypeService trainingTypeService;
 
@@ -45,39 +48,37 @@ class TrainingServiceImplTest {
     private TrainingServiceImpl service;
 
     @Test
-    void createTraining_success_savesTrainingAndAssociations_andVerifiesMocks() {
-        TrainingDto dto = new TrainingDto();
-        dto.setTraineeId("trainee-1");
-        dto.setTrainerId("trainer-1");
-        dto.setTrainingName("Morning Cardio");
-        dto.setTrainingTypeName("CARDIO");
-        dto.setTrainingDate(LocalDate.of(2025, 1, 1));
-        dto.setTrainingDuration(60);
+    void addTraining_success_savesTrainingAndAssociations_andVerifiesMocks() {
+        AddTrainingRequest req = new AddTrainingRequest();
+        req.setTraineeUsername("traineeUser");
+        req.setTrainerUsername("trainerUser");
+        req.setTrainingName("Morning Cardio");
+        req.setTrainingDate(LocalDate.of(2025, 1, 1));
+        req.setTrainingDuration(60);
 
         TraineeEntity traineeEntity = new TraineeEntity();
         traineeEntity.setId("trainee-1");
-        traineeEntity.setTrainers(new HashSet<>()); // ensure non-null set
+        traineeEntity.setTrainers(new HashSet<>());
 
         TrainerEntity trainerEntity = new TrainerEntity();
         trainerEntity.setId("trainer-1");
-        trainerEntity.setTrainees(new HashSet<>()); // ensure non-null set
+        trainerEntity.setTrainees(new HashSet<>());
 
-        TrainingTypeEntity tt = new TrainingTypeEntity();
-        tt.setId("tt-1");
-        tt.setTrainingTypeName("CARDIO");
+        TrainingTypeEntity trainingTypeEntity = new TrainingTypeEntity();
+        trainingTypeEntity.setId("tt-1");
+        trainingTypeEntity.setTrainingTypeName("CARDIO");
+        trainerEntity.setSpecialization(trainingTypeEntity);
 
-        when(traineeService.getTraineeEntity("trainee-1")).thenReturn(traineeEntity);
-        when(trainerService.getTrainerEntity("trainer-1")).thenReturn(trainerEntity);
-        when(trainingTypeService.getTrainingTypeByName("CARDIO")).thenReturn(tt);
+        when(traineeService.getTraineeEntityByUsername("traineeUser")).thenReturn(traineeEntity);
+        when(trainerService.getTrainerEntityByUsername("trainerUser")).thenReturn(trainerEntity);
 
-        when(trainingRepository.save(any(TrainingEntity.class)))
-                .thenAnswer(invocation -> {
-                    TrainingEntity arg = invocation.getArgument(0);
-                    arg.setId("training-uuid-1");
-                    return arg;
-                });
+        when(trainingRepository.save(any(TrainingEntity.class))).thenAnswer(invocation -> {
+            TrainingEntity t = invocation.getArgument(0);
+            t.setId("training-uuid-1");
+            return t;
+        });
 
-        String createdId = service.createTraining(dto);
+        String createdId = service.addTraining(req);
 
         assertNotNull(createdId);
         assertEquals("training-uuid-1", createdId);
@@ -89,7 +90,7 @@ class TrainingServiceImplTest {
         assertEquals("trainee-1", saved.getTrainee().getId());
         assertEquals("trainer-1", saved.getTrainer().getId());
         assertEquals("Morning Cardio", saved.getTrainingName());
-        assertEquals(tt, saved.getTrainingType());
+        assertEquals(trainingTypeEntity, saved.getTrainingType());
         assertEquals(LocalDate.of(2025, 1, 1), saved.getTrainingDate());
         assertEquals(60, saved.getTrainingDuration());
 
@@ -101,18 +102,17 @@ class TrainingServiceImplTest {
     }
 
     @Test
-    void createTraining_missingEntities_returnsNull_andDoesNotSave() {
-        TrainingDto dto = new TrainingDto();
-        dto.setTraineeId("missing-trainee");
-        dto.setTrainerId("trainer-1");
-        dto.setTrainingName("X");
-        dto.setTrainingTypeName("CARDIO");
-        dto.setTrainingDate(LocalDate.now());
-        dto.setTrainingDuration(30);
+    void addTraining_missingEntities_returnsNull_andDoesNotSave() {
+        AddTrainingRequest req = new AddTrainingRequest();
+        req.setTraineeUsername("missing");
+        req.setTrainerUsername("trainerUser");
+        req.setTrainingName("X");
+        req.setTrainingDate(LocalDate.now());
+        req.setTrainingDuration(30);
 
-        when(traineeService.getTraineeEntity("missing-trainee")).thenReturn(null);
+        when(traineeService.getTraineeEntityByUsername("missing")).thenReturn(null);
 
-        String result = service.createTraining(dto);
+        String result = service.addTraining(req);
 
         assertNull(result);
         verify(trainingRepository, never()).save(any());

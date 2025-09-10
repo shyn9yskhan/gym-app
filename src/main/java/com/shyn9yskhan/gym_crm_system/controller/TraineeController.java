@@ -1,6 +1,13 @@
 package com.shyn9yskhan.gym_crm_system.controller;
 
-import com.shyn9yskhan.gym_crm_system.dto.*;
+import com.shyn9yskhan.gym_crm_system.dto.CreateTraineeResponse;
+import com.shyn9yskhan.gym_crm_system.dto.UpdateTraineeRequest;
+import com.shyn9yskhan.gym_crm_system.dto.TraineeDto;
+import com.shyn9yskhan.gym_crm_system.dto.TraineeProfile;
+import com.shyn9yskhan.gym_crm_system.dto.GetTraineeTrainingsListRequest;
+import com.shyn9yskhan.gym_crm_system.dto.GetTraineeTrainingsListResponse;
+import com.shyn9yskhan.gym_crm_system.dto.TrainerProfileDto;
+import com.shyn9yskhan.gym_crm_system.dto.UpdateTraineesTrainerListRequest;
 import com.shyn9yskhan.gym_crm_system.domain.Trainee;
 import com.shyn9yskhan.gym_crm_system.service.TraineeService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -125,7 +132,7 @@ public class TraineeController {
         }
     }
 
-    @GetMapping("/{username}")
+    @GetMapping("/profile/{username}")
     @Operation(
             summary = "Get trainee profile by username",
             description = "Retrieves the trainee's profile by username."

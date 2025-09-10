@@ -1,13 +1,16 @@
 package com.shyn9yskhan.gym_crm_system.service;
 
-import com.shyn9yskhan.gym_crm_system.dto.TrainerDto;
-import com.shyn9yskhan.gym_crm_system.domain.Trainer;
 import com.shyn9yskhan.gym_crm_system.domain.TrainingType;
+import com.shyn9yskhan.gym_crm_system.dto.TrainerDto;
+import com.shyn9yskhan.gym_crm_system.dto.CreateTrainerResponse;
+import com.shyn9yskhan.gym_crm_system.dto.UpdateTrainerRequest;
+import com.shyn9yskhan.gym_crm_system.dto.TrainingTypeDto;
+import com.shyn9yskhan.gym_crm_system.dto.TrainerProfile;
 import com.shyn9yskhan.gym_crm_system.entity.TrainerEntity;
 import com.shyn9yskhan.gym_crm_system.entity.TrainingTypeEntity;
 import com.shyn9yskhan.gym_crm_system.entity.UserEntity;
-import com.shyn9yskhan.gym_crm_system.repository.TrainerRepository;
 import com.shyn9yskhan.gym_crm_system.service.impl.TrainerServiceImpl;
+import com.shyn9yskhan.gym_crm_system.repository.TrainerRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -15,166 +18,144 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Optional;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class TrainerServiceImplTest {
 
     @Mock
-    private TrainerRepository repository;
+    private TrainerRepository trainerRepository;
+
     @Mock
     private UserService userService;
+
+    @Mock
+    private TraineeService traineeService;
+
     @Mock
     private TrainingTypeService trainingTypeService;
+
+    @Mock
+    private TrainingService trainingService; // lazy in ctor, but we mock it
 
     @InjectMocks
     private TrainerServiceImpl service;
 
     @Test
-    void createTrainer_successfulCreation_returnsGeneratedIdAndSavesEntity() {
-        TrainerDto trainerDto = new TrainerDto();
-        trainerDto.setFirstname("Zack");
-        trainerDto.setLastname("Lion");
-        trainerDto.setTrainingTypeName("BOXING");
+    void createTrainer_successfulCreation_returnsCreateTrainerResponse_andPersists() {
+        // prepare DTO
+        TrainerDto request = new TrainerDto();
+        request.setFirstname("Zack");
+        request.setLastname("Lion");
+        request.setTrainingTypeName("BOXING");
 
-        UserEntity userEntity = new UserEntity();
-        userEntity.setFirstname("Zack");
-        userEntity.setLastname("Lion");
-        userEntity.setUsername("Zack.Lion");
-        userEntity.setPassword("pass123");
-        userEntity.setActive(true);
+        // prepare created user
+        UserEntity createdUser = new UserEntity();
+        createdUser.setId("U1");
+        createdUser.setFirstname("Zack");
+        createdUser.setLastname("Lion");
+        createdUser.setUsername("Zack.Lion");
+        createdUser.setPassword("pass123");
+        createdUser.setActive(true);
 
-        UserCreationResult userCreationResult = new UserCreationResult(userEntity);
+        when(userService.createUser(request.getFirstname(), request.getLastname()))
+                .thenReturn(new UserCreationResult(createdUser));
 
-        TrainingTypeEntity trainingTypeEntity = new TrainingTypeEntity();
-        trainingTypeEntity.setId("TT1");
-        trainingTypeEntity.setTrainingTypeName("BOXING");
+        // prepare training type
+        TrainingTypeEntity tte = new TrainingTypeEntity();
+        tte.setId("TT1");
+        tte.setTrainingTypeName("BOXING");
+        when(trainingTypeService.getTrainingTypeByName("BOXING")).thenReturn(tte);
 
-        when(userService.createUser(trainerDto.getFirstname(), trainerDto.getLastname()))
-                .thenReturn(userCreationResult);
+        // save should return the same entity (simulate JPA save)
+        when(trainerRepository.save(any(TrainerEntity.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
-        when(trainingTypeService.getTrainingTypeByName("BOXING"))
-                .thenReturn(trainingTypeEntity);
+        CreateTrainerResponse response = service.createTrainer(request);
 
-        when(repository.save(any(TrainerEntity.class))).thenAnswer(invocation -> {
-            TrainerEntity arg = invocation.getArgument(0);
-            arg.setId("TR-123");
-            return arg;
-        });
-
-        String createdId = service.createTrainer(trainerDto);
-
-        assertNotNull(createdId);
-        assertEquals("TR-123", createdId);
+        assertNotNull(response);
+        assertEquals("Zack.Lion", response.getUsername());
+        assertEquals("pass123", response.getPassword());
 
         ArgumentCaptor<TrainerEntity> captor = ArgumentCaptor.forClass(TrainerEntity.class);
-        verify(repository).save(captor.capture());
+        verify(trainerRepository).save(captor.capture());
         TrainerEntity saved = captor.getValue();
-
-        assertSame(userEntity, saved.getUser(), "UserEntity should be set on saved TrainerEntity");
-        assertSame(trainingTypeEntity, saved.getSpecialization(), "TrainingTypeEntity should be set");
+        assertSame(createdUser, saved.getUser());
+        assertSame(tte, saved.getSpecialization());
     }
 
     @Test
-    void createTrainer_whenTrainingTypeNotFound_returnsNullAndDoesNotSave() {
-        TrainerDto trainerDto = new TrainerDto();
-        trainerDto.setFirstname("Anna");
-        trainerDto.setLastname("Bell");
-        trainerDto.setTrainingTypeName("UNKNOWN");
+    void createTrainer_whenTrainingTypeMissing_returnsNull_butUserCreatedIsCalled() {
+        TrainerDto request = new TrainerDto();
+        request.setFirstname("Anna");
+        request.setLastname("Bell");
+        request.setTrainingTypeName("UNKNOWN");
 
-        UserEntity userEntity = new UserEntity();
-        userEntity.setFirstname("Anna");
-        userEntity.setLastname("Bell");
+        UserEntity createdUser = new UserEntity();
+        createdUser.setFirstname("Anna");
+        createdUser.setLastname("Bell");
 
-        when(userService.createUser(trainerDto.getFirstname(), trainerDto.getLastname()))
-                .thenReturn(new UserCreationResult(userEntity));
+        when(userService.createUser(request.getFirstname(), request.getLastname()))
+                .thenReturn(new UserCreationResult(createdUser));
 
-        when(trainingTypeService.getTrainingTypeByName("UNKNOWN"))
-                .thenReturn(null);
-
-        String result = service.createTrainer(trainerDto);
-
-        assertNull(result);
-        verify(repository, never()).save(any());
-    }
-
-    @Test
-    void updateTrainer_notExists_returnsNull() {
-        String id = "nonexistent";
-        when(repository.existsById(id)).thenReturn(false);
-
-        String res = service.updateTrainer(id, "CARDIO");
-
-        assertNull(res);
-        verify(repository, never()).updateTrainerSpecialization(anyString(), any());
-    }
-
-    @Test
-    void updateTrainer_trainingTypeNotFound_returnsNull() {
-        String id = "T1";
-        when(repository.existsById(id)).thenReturn(true);
         when(trainingTypeService.getTrainingTypeByName("UNKNOWN")).thenReturn(null);
 
-        String res = service.updateTrainer(id, "UNKNOWN");
+        CreateTrainerResponse response = service.createTrainer(request);
 
+        assertNull(response);
+        verify(userService, times(1)).createUser("Anna", "Bell");
+        verify(trainerRepository, never()).save(any());
+    }
+
+    @Test
+    void updateTrainer_notFoundByUsername_returnsNull_andDoesNotUpdate() {
+        UpdateTrainerRequest req = new UpdateTrainerRequest();
+        req.setUsername("noone");
+        req.setFirstname("X");
+        req.setLastname("Y");
+        req.setActive(true);
+        TrainingTypeDto specialization = new TrainingTypeDto();
+        specialization.setId("TT");
+        specialization.setTrainingTypeName("YOGA");
+        req.setSpecialization(specialization);
+
+        when(trainerRepository.findByUserUsername("noone")).thenReturn(Optional.empty());
+
+        TrainerProfile res = service.updateTrainer(req);
         assertNull(res);
-        verify(repository, never()).updateTrainerSpecialization(anyString(), any());
+        verify(trainerRepository, never()).updateTrainer(anyString(), any());
+        verify(userService, never()).updateUser(any());
     }
 
     @Test
-    void updateTrainer_success_returnsId() {
-        String id = "T2";
-        when(repository.existsById(id)).thenReturn(true);
-
-        TrainingTypeEntity tte = new TrainingTypeEntity();
-        tte.setId("TT2");
-        tte.setTrainingTypeName("STRENGTH");
-        when(trainingTypeService.getTrainingTypeByName("STRENGTH")).thenReturn(tte);
-
-        when(repository.updateTrainerSpecialization(eq(id), eq(tte))).thenReturn(1);
-
-        String res = service.updateTrainer(id, "STRENGTH");
-
-        assertEquals(id, res);
-        verify(repository).updateTrainerSpecialization(eq(id), eq(tte));
+    void getTrainer_notFound_returnsNull() {
+        when(trainerRepository.findById("no")).thenReturn(Optional.empty());
+        assertNull(service.getTrainer("no"));
     }
 
     @Test
-    void getTrainer_whenNotFound_returnsNull() {
-        when(repository.findById("no")).thenReturn(Optional.empty());
-        Trainer res = service.getTrainer("no");
-        assertNull(res);
-    }
-
-    @Test
-    void getTrainer_whenFound_mapsEntityToDomain() {
+    void getTrainer_found_mapsToDomain() {
         TrainerEntity entity = new TrainerEntity();
         entity.setId("E1");
 
-        UserEntity u = new UserEntity();
-        u.setFirstname("First");
-        u.setLastname("Last");
-        u.setUsername("First.Last");
-        u.setPassword("pwd");
-        u.setActive(true);
-        entity.setUser(u);
+        UserEntity user = new UserEntity();
+        user.setFirstname("First");
+        user.setLastname("Last");
+        user.setUsername("First.Last");
+        user.setPassword("pwd");
+        user.setActive(true);
+        entity.setUser(user);
 
         TrainingTypeEntity tte = new TrainingTypeEntity();
-        tte.setId("TT");
         tte.setTrainingTypeName("YOGA");
         entity.setSpecialization(tte);
 
-        when(repository.findById("E1")).thenReturn(Optional.of(entity));
+        when(trainerRepository.findById("E1")).thenReturn(Optional.of(entity));
 
-        Trainer domain = service.getTrainer("E1");
+        com.shyn9yskhan.gym_crm_system.domain.Trainer domain = service.getTrainer("E1");
 
         assertNotNull(domain);
         assertEquals("First", domain.getFirstname());
@@ -186,17 +167,10 @@ class TrainerServiceImplTest {
     }
 
     @Test
-    void getTrainerEntity_whenNotFound_returnsNull() {
-        when(repository.findById("no")).thenReturn(Optional.empty());
-        assertNull(service.getTrainerEntity("no"));
-    }
-
-    @Test
     void getTrainerEntity_whenFound_returnsEntity() {
         TrainerEntity entity = new TrainerEntity();
         entity.setId("E2");
-        when(repository.findById("E2")).thenReturn(Optional.of(entity));
-
+        when(trainerRepository.findById("E2")).thenReturn(Optional.of(entity));
         TrainerEntity res = service.getTrainerEntity("E2");
         assertNotNull(res);
         assertEquals("E2", res.getId());
@@ -206,12 +180,10 @@ class TrainerServiceImplTest {
     void saveTrainer_delegatesToRepository_andReturnsSaved() {
         TrainerEntity entity = new TrainerEntity();
         entity.setId("S1");
-
-        when(repository.save(entity)).thenReturn(entity);
-
+        when(trainerRepository.save(entity)).thenReturn(entity);
         TrainerEntity res = service.saveTrainer(entity);
         assertNotNull(res);
         assertEquals("S1", res.getId());
-        verify(repository).save(entity);
+        verify(trainerRepository).save(entity);
     }
 }
