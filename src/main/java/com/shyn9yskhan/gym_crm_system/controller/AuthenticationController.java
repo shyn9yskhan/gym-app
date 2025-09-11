@@ -1,5 +1,8 @@
 package com.shyn9yskhan.gym_crm_system.controller;
 
+import com.shyn9yskhan.gym_crm_system.security.BruteForceService;
+import com.shyn9yskhan.gym_crm_system.security.JwtUtil;
+import com.shyn9yskhan.gym_crm_system.security.TokenBlacklist;
 import com.shyn9yskhan.gym_crm_system.dto.ChangePasswordRequest;
 import com.shyn9yskhan.gym_crm_system.dto.LoginRequest;
 import com.shyn9yskhan.gym_crm_system.service.AuthenticationService;
@@ -8,21 +11,33 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.Instant;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
 @Tag(name = "Authentication API", description = "Endpoints for user authentication and password management")
 public class AuthenticationController {
-    private static final Logger logger = LoggerFactory.getLogger(AuthenticationController.class);
     private AuthenticationService authenticationService;
+    private AuthenticationManager authenticationManager;
+    private JwtUtil jwtUtil;
+    private TokenBlacklist tokenBlacklist;
+    private BruteForceService bruteForceService;
 
-    public AuthenticationController(AuthenticationService authenticationService) {
+    public AuthenticationController(AuthenticationService authenticationService, AuthenticationManager authenticationManager, JwtUtil jwtUtil, TokenBlacklist tokenBlacklist, BruteForceService bruteForceService) {
         this.authenticationService = authenticationService;
+        this.authenticationManager = authenticationManager;
+        this.jwtUtil = jwtUtil;
+        this.tokenBlacklist = tokenBlacklist;
+        this.bruteForceService = bruteForceService;
     }
 
     @GetMapping("/login")
@@ -35,14 +50,27 @@ public class AuthenticationController {
             @ApiResponse(responseCode = "400", description = "Invalid request"),
             @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
-    public ResponseEntity<Void> login(
+    public ResponseEntity<?> login(
             @RequestBody @Schema(description = "Login credentials") LoginRequest loginRequest
     ) {
-        if (loginRequest.username() == null || loginRequest.password() == null) {
-            return ResponseEntity.badRequest().build();
+        String username = loginRequest.username();
+        if (bruteForceService.isBlocked(username)) {
+            return ResponseEntity.status(HttpStatus.LOCKED).body("User blocked due to failed attempts");
         }
-        boolean ok = authenticationService.authenticate(loginRequest.username(), loginRequest.password());
-        return ok ? ResponseEntity.ok().build() : ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(username, loginRequest.password())
+            );
+            bruteForceService.recordSuccess(username);
+            String token = jwtUtil.generateToken(username);
+            return ResponseEntity.ok(Map.of("token", token));
+        } catch (BadCredentialsException ex) {
+            bruteForceService.recordFailure(username);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        } catch (AuthenticationException ex) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ex.getMessage());
+        }
     }
 
     @PutMapping("/change-password")
@@ -60,6 +88,16 @@ public class AuthenticationController {
         String newPassword = authenticationService.changePassword(changePasswordRequest.username(), changePasswordRequest.oldPassword(), changePasswordRequest.newPassword());
         if (newPassword == null) {
             return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@RequestHeader(value = "Authorization", required = false) String auth) {
+        if (auth != null && auth.startsWith("Bearer ")) {
+            String token = auth.substring(7);
+            Instant expiration = jwtUtil.getExpirationInstant(token);
+            tokenBlacklist.blacklist(token);
         }
         return ResponseEntity.ok().build();
     }

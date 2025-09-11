@@ -11,6 +11,7 @@ import com.shyn9yskhan.gym_crm_system.service.UserService;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -22,27 +23,31 @@ public class UserServiceImpl implements UserService {
     private static final Logger logger = LoggerFactory.getLogger(TrainingServiceImpl.class);
     private UserRepository userRepository;
     private AppMetrics metrics;
+    private PasswordEncoder passwordEncoder;
 
-    public UserServiceImpl(UserRepository userRepository, AppMetrics metrics) {
+    public UserServiceImpl(UserRepository userRepository, AppMetrics metrics, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.metrics = metrics;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
     @Transactional
     public UserCreationResult createUser(String firstname, String lastname) {
         String username = makeUniqueUsername(firstname, lastname);
-        String password = RandomGenerator.generatePassword();
+        String rawPassword = RandomGenerator.generatePassword();
+        String encodedPassword = passwordEncoder.encode(rawPassword);
 
         UserEntity userEntity = new UserEntity();
         userEntity.setFirstname(firstname);
         userEntity.setLastname(lastname);
         userEntity.setUsername(username);
-        userEntity.setPassword(password);
+        userEntity.setPassword(passwordEncoder.encode(encodedPassword));
         userEntity.setActive(true);
 
         userRepository.save(userEntity);
         metrics.userCreated();
+        userEntity.setPassword(rawPassword);
         return new UserCreationResult(userEntity);
     }
 
