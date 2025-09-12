@@ -1,40 +1,56 @@
 package com.shyn9yskhan.gym_crm_system.security;
 
 import org.springframework.stereotype.Component;
-
+import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class BruteForceService {
     private static final int MAX_ATTEMPTS = 3;
-    private static final long BLOCK_MS = 5 * 60 * 1000L;
-    private final ConcurrentHashMap<String, Attempt> map = new ConcurrentHashMap<>();
+    private static final Duration BLOCK_DURATION = Duration.ofMinutes(5);
+    private final ConcurrentHashMap<String, Attempt> attemptsByUsername = new ConcurrentHashMap<>();
 
     public void recordFailure(String username) {
-        map.compute(username, (k, v) -> {
-            if (v == null || (v.blockedUntil != null && v.blockedUntil.isBefore(Instant.now()))) {
+        attemptsByUsername.compute(username, (key, existingAttempt) -> {
+            Instant now = Instant.now();
+            if (existingAttempt == null || isBlockExpired(existingAttempt, now)) {
                 return new Attempt(1, null);
             }
-            int attempts = v.attempts + 1;
-            Instant blocked = attempts >= MAX_ATTEMPTS ? Instant.now().plusMillis(BLOCK_MS) : null;
-            return new Attempt(attempts, blocked);
+            int newCount = existingAttempt.attemptsCount + 1;
+            Instant blockedUntil = newCount >= MAX_ATTEMPTS ? now.plus(BLOCK_DURATION) : null;
+            return new Attempt(newCount, blockedUntil);
         });
     }
 
     public void recordSuccess(String username) {
-        map.remove(username);
+        attemptsByUsername.remove(username);
     }
 
     public boolean isBlocked(String username) {
-        Attempt a = map.get(username);
-        if (a == null) return false;
-        return a.blockedUntil != null && a.blockedUntil.isAfter(Instant.now());
+        Attempt attempt = attemptsByUsername.get(username);
+        return isCurrentlyBlocked(attempt, Instant.now());
     }
 
-    private static class Attempt {
-        final int attempts;
+    private boolean isCurrentlyBlocked(Attempt attempt, Instant now) {
+        if (attempt == null) return false;
+        Instant blockedUntil = attempt.blockedUntil;
+        return blockedUntil != null && blockedUntil.isAfter(now);
+    }
+
+    private boolean isBlockExpired(Attempt attempt, Instant now) {
+        if (attempt == null) return false;
+        Instant blockedUntil = attempt.blockedUntil;
+        return blockedUntil != null && blockedUntil.isBefore(now);
+    }
+
+    private static final class Attempt {
+        final int attemptsCount;
         final Instant blockedUntil;
-        Attempt(int attempts, Instant blockedUntil) { this.attempts = attempts; this.blockedUntil = blockedUntil; }
+
+        Attempt(int attemptsCount, Instant blockedUntil) {
+            this.attemptsCount = attemptsCount;
+            this.blockedUntil = blockedUntil;
+        }
     }
 }

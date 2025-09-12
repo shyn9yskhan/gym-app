@@ -11,20 +11,16 @@ import java.util.Collections;
 
 @Service
 public class AppUserDetailsService implements UserDetailsService {
-
     private final UserService userService;
 
     public AppUserDetailsService(UserService userService) {
         this.userService = userService;
     }
 
-    // Возвращаем Spring Security UserDetails на основании доменного User
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userService.getUserByUsername(username);
         if (user == null) throw new UsernameNotFoundException("User not found: " + username);
-
-        // password ожидается в виде хеша (BCrypt)
         return org.springframework.security.core.userdetails.User.builder()
                 .username(user.getUsername())
                 .password(user.getPassword())
