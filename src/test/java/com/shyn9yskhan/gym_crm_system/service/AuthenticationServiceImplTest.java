@@ -14,7 +14,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
 class AuthenticationServiceImplTest {
@@ -44,7 +43,7 @@ class AuthenticationServiceImplTest {
         when(userService.getUserByUsername("unknown")).thenReturn(null);
         boolean result = authenticationService.authenticate("unknown", "pw");
         assertFalse(result);
-        verify(userService, times(1)).getUserByUsername("unknown");
+        verify(userService).getUserByUsername("unknown");
     }
 
     @Test
@@ -55,7 +54,7 @@ class AuthenticationServiceImplTest {
         when(userService.getUserByUsername("John.Smith")).thenReturn(user);
         boolean result = authenticationService.authenticate("John.Smith", "password1");
         assertFalse(result);
-        verify(userService, times(1)).getUserByUsername("John.Smith");
+        verify(userService).getUserByUsername("John.Smith");
     }
 
     @Test
@@ -66,6 +65,6 @@ class AuthenticationServiceImplTest {
         when(userService.getUserByUsername("John.Smith")).thenReturn(user);
         boolean result = authenticationService.authenticate("John.Smith", "password");
         assertTrue(result);
-        verify(userService, times(1)).getUserByUsername("John.Smith");
+        verify(userService).getUserByUsername("John.Smith");
     }
 }

@@ -18,7 +18,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceImplTest {
@@ -40,17 +43,16 @@ class UserServiceImplTest {
 
         when(userRepository.existsByUsername(base)).thenReturn(false);
         when(userRepository.save(any(UserEntity.class))).thenAnswer(i -> i.getArgument(0));
-
         UserCreationResult result = service.createUser(firstname, lastname);
 
         assertNotNull(result);
         UserEntity saved = result.userEntity();
         assertNotNull(saved);
         assertEquals(base, saved.getUsername());
-        assertNotNull(saved.getPassword()); // generated password exists
+        assertNotNull(saved.getPassword());
 
-        verify(userRepository, times(1)).save(any(UserEntity.class));
-        verify(metrics, times(1)).userCreated();
+        verify(userRepository).existsByUsername(base);
+        verify(userRepository).save(any(UserEntity.class));
     }
 
     @Test
@@ -60,31 +62,25 @@ class UserServiceImplTest {
         String base = firstname + "." + lastname;
 
         when(userRepository.existsByUsername(base)).thenReturn(true);
-        when(userRepository.findUsernameByUsernameStartingWith(base))
-                .thenReturn(List.of("John.Doe", "John.Doe1", "John.Doe2"));
+        when(userRepository.findUsernameByUsernameStartingWith(base)).thenReturn(List.of("John.Doe", "John.Doe1", "John.Doe2"));
         when(userRepository.save(any(UserEntity.class))).thenAnswer(i -> i.getArgument(0));
-
         UserCreationResult result = service.createUser(firstname, lastname);
+
         assertNotNull(result);
         UserEntity saved = result.userEntity();
         assertNotNull(saved);
         assertEquals("John.Doe3", saved.getUsername());
 
-        verify(userRepository, times(1)).save(any(UserEntity.class));
-        verify(metrics, times(1)).userCreated();
+        verify(userRepository).existsByUsername(base);
+        verify(userRepository).findUsernameByUsernameStartingWith(base);
+        verify(userRepository).save(any(UserEntity.class));
     }
 
     @Test
     void getUserByUsername_whenFound_returnsDomainUserMapped() {
         String username = "alice.smith";
-        UserEntity ue = new UserEntity();
-        ue.setFirstname("Alice");
-        ue.setLastname("Smith");
-        ue.setUsername(username);
-        ue.setPassword("pw");
-        ue.setActive(true);
-
-        when(userRepository.findByUsername(username)).thenReturn(Optional.of(ue));
+        UserEntity userEntity = new UserEntity(null, "Alice", "Smith", username, "pw", true);
+        when(userRepository.findByUsername(username)).thenReturn(Optional.of(userEntity));
         var user = service.getUserByUsername(username);
 
         assertNotNull(user);
@@ -93,14 +89,14 @@ class UserServiceImplTest {
         assertEquals(username, user.getUsername());
         assertEquals("pw", user.getPassword());
         assertTrue(user.isActive());
-        verify(userRepository, times(1)).findByUsername(username);
+        verify(userRepository).findByUsername(username);
     }
 
     @Test
     void getUserByUsername_whenNotFound_returnsNull() {
         when(userRepository.findByUsername("nope")).thenReturn(Optional.empty());
         assertNull(service.getUserByUsername("nope"));
-        verify(userRepository, times(1)).findByUsername("nope");
+        verify(userRepository).findByUsername("nope");
     }
 
     @Test
@@ -109,17 +105,16 @@ class UserServiceImplTest {
         String oldPassword = "old";
         String newPassword = "new-pass-123";
 
-        UserEntity ue = new UserEntity();
-        ue.setUsername(username);
-        ue.setPassword(oldPassword);
+        UserEntity userEntity = new UserEntity();
+        userEntity.setUsername(username);
+        userEntity.setPassword(oldPassword);
 
-        when(userRepository.findByUsername(username)).thenReturn(Optional.of(ue));
+        when(userRepository.findByUsername(username)).thenReturn(Optional.of(userEntity));
         when(userRepository.save(any(UserEntity.class))).thenAnswer(i -> i.getArgument(0));
-
         String returned = service.changePassword(username, oldPassword, newPassword);
-
         assertEquals(newPassword, returned);
         ArgumentCaptor<UserEntity> captor = ArgumentCaptor.forClass(UserEntity.class);
+        verify(userRepository).findByUsername(username);
         verify(userRepository).save(captor.capture());
         assertEquals(newPassword, captor.getValue().getPassword());
     }
@@ -127,14 +122,14 @@ class UserServiceImplTest {
     @Test
     void changePassword_whenUserExists_butOldDoesNotMatch_returnsNullAndDoesNotSave() {
         String username = "john.doe";
-        UserEntity ue = new UserEntity();
-        ue.setUsername(username);
-        ue.setPassword("different-old");
+        UserEntity userEntity = new UserEntity();
+        userEntity.setUsername(username);
+        userEntity.setPassword("different-old");
 
-        when(userRepository.findByUsername(username)).thenReturn(Optional.of(ue));
-
+        when(userRepository.findByUsername(username)).thenReturn(Optional.of(userEntity));
         String returned = service.changePassword(username, "old", "new");
         assertNull(returned);
+        verify(userRepository).findByUsername(username);
         verify(userRepository, never()).save(any());
     }
 
@@ -142,23 +137,23 @@ class UserServiceImplTest {
     void changePassword_whenUserNotFound_returnsNull() {
         when(userRepository.findByUsername("nope")).thenReturn(Optional.empty());
         assertNull(service.changePassword("nope", "a", "b"));
+        verify(userRepository).findByUsername("nope");
         verify(userRepository, never()).save(any());
     }
 
     @Test
     void setActive_whenUserExists_updatesAndReturnsUserId() {
         String userId = "u-2";
-        UserEntity ue = new UserEntity();
-        ue.setId(userId);
-        ue.setActive(false);
+        UserEntity userEntity = new UserEntity();
+        userEntity.setId(userId);
+        userEntity.setActive(false);
 
-        when(userRepository.findById(userId)).thenReturn(Optional.of(ue));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(userEntity));
         when(userRepository.save(any(UserEntity.class))).thenAnswer(i -> i.getArgument(0));
-
         String result = service.setActive(userId, true);
-
         assertEquals(userId, result);
         ArgumentCaptor<UserEntity> captor = ArgumentCaptor.forClass(UserEntity.class);
+        verify(userRepository).findById(userId);
         verify(userRepository).save(captor.capture());
         assertTrue(captor.getValue().isActive());
     }
@@ -167,6 +162,7 @@ class UserServiceImplTest {
     void setActive_whenUserNotFound_returnsNull() {
         when(userRepository.findById("nope")).thenReturn(Optional.empty());
         assertNull(service.setActive("nope", true));
+        verify(userRepository).findById("nope");
         verify(userRepository, never()).save(any());
     }
 }

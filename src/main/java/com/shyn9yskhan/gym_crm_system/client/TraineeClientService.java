@@ -15,15 +15,15 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class TraineeClient {
+public class TraineeClientService {
 
     private final TrainerService trainerService;
     private final TrainingService trainingService;
     private final UserService userService;
 
-    public TraineeClient(TrainerService trainerService,
-                         TrainingService trainingService,
-                         UserService userService) {
+    public TraineeClientService(TrainerService trainerService,
+                                TrainingService trainingService,
+                                UserService userService) {
         this.trainerService = trainerService;
         this.trainingService = trainingService;
         this.userService = userService;

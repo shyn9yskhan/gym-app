@@ -45,6 +45,14 @@ public class TraineeEntity {
     public TraineeEntity() {
     }
 
+    public TraineeEntity(String id, LocalDate dateOfBirth, String address, UserEntity user, Set<TrainerEntity> trainers) {
+        this.id = id;
+        this.dateOfBirth = dateOfBirth;
+        this.address = address;
+        this.user = user;
+        this.trainers = trainers;
+    }
+
     public String getId() {
         return id;
     }

@@ -1,6 +1,6 @@
 package com.shyn9yskhan.gym_crm_system.service.impl;
 
-import com.shyn9yskhan.gym_crm_system.client.TraineeClient;
+import com.shyn9yskhan.gym_crm_system.client.TraineeClientService;
 import com.shyn9yskhan.gym_crm_system.dto.*;
 import com.shyn9yskhan.gym_crm_system.domain.Trainee;
 import com.shyn9yskhan.gym_crm_system.entity.TraineeEntity;
@@ -23,11 +23,11 @@ public class TraineeServiceImpl implements TraineeService {
     private static final Logger logger = LoggerFactory.getLogger(TraineeServiceImpl.class);
 
     private final TraineeRepository traineeRepository;
-    private final TraineeClient traineeClient;
+    private final TraineeClientService traineeClientService;
 
-    public TraineeServiceImpl(TraineeRepository traineeRepository, @Lazy TraineeClient traineeClient) {
+    public TraineeServiceImpl(TraineeRepository traineeRepository, @Lazy TraineeClientService traineeClientService) {
         this.traineeRepository = traineeRepository;
-        this.traineeClient = traineeClient;
+        this.traineeClientService = traineeClientService;
     }
 
     @Override
@@ -40,7 +40,7 @@ public class TraineeServiceImpl implements TraineeService {
         LocalDate dateOfBirth = traineeDto.getDateOfBirth();
         String address = traineeDto.getAddress();
 
-        UserCreationResult userCreationResult = traineeClient.userService_createUser(firstname, lastname);
+        UserCreationResult userCreationResult = traineeClientService.userService_createUser(firstname, lastname);
 
         TraineeEntity traineeEntity = new TraineeEntity();
         traineeEntity.setDateOfBirth(dateOfBirth);
@@ -81,7 +81,7 @@ public class TraineeServiceImpl implements TraineeService {
         userDto.setActive(updateTraineeRequest.isActive());
 
         int traineeUpdateCount = traineeRepository.updateTrainee(traineeId, updatedDateOfBirth, updatedAddress);
-        UserDto updatedUser = traineeClient.userService_updateUser(userDto);
+        UserDto updatedUser = traineeClientService.userService_updateUser(userDto);
 
         if (traineeUpdateCount == 1 && updatedUser != null) {
             return getTraineeProfileById(traineeId);
@@ -104,7 +104,7 @@ public class TraineeServiceImpl implements TraineeService {
         }
 
         long deleted = traineeRepository.deleteByUser_Username(username);
-        String userDeleteResult = traineeClient.userService_deleteUser(username);
+        String userDeleteResult = traineeClientService.userService_deleteUser(username);
 
         if (deleted > 0 && userDeleteResult != null) {
             logger.info("Deleted trainee-row(s) for username: {} (rows={})", username, deleted);
@@ -175,7 +175,7 @@ public class TraineeServiceImpl implements TraineeService {
 
         if (optionalTraineeEntity.isPresent()) {
             TraineeEntity traineeEntity = optionalTraineeEntity.get();
-            Set<TrainerEntity> trainerEntities = new HashSet<>(traineeClient.trainerService_findAllByUserUsernameIn(trainersUsernames));
+            Set<TrainerEntity> trainerEntities = new HashSet<>(traineeClientService.trainerService_findAllByUserUsernameIn(trainersUsernames));
             traineeEntity.setTrainers(trainerEntities);
             traineeRepository.save(traineeEntity);
 
@@ -201,13 +201,13 @@ public class TraineeServiceImpl implements TraineeService {
 
     @Override
     public List<GetTraineeTrainingsListResponse> getTraineeTrainingsList(GetTraineeTrainingsListRequest getTraineeTrainingsListRequest) {
-        return traineeClient.trainingService_getTraineeTrainingsList(getTraineeTrainingsListRequest);
+        return traineeClientService.trainingService_getTraineeTrainingsList(getTraineeTrainingsListRequest);
     }
 
     @Override
     public String updateTraineeActivation(String username, boolean isActive) {
         boolean isExists = traineeRepository.existsByUserUsername(username);
-        if (isExists) return traineeClient.userService_setActiveByUsername(username, isActive);
+        if (isExists) return traineeClientService.userService_setActiveByUsername(username, isActive);
         return null;
     }
 

@@ -37,6 +37,13 @@ public class TrainerEntity {
     public TrainerEntity() {
     }
 
+    public TrainerEntity(String id, TrainingTypeEntity specialization, UserEntity user, Set<TraineeEntity> trainees) {
+        this.id = id;
+        this.specialization = specialization;
+        this.user = user;
+        this.trainees = trainees;
+    }
+
     public String getId() {
         return id;
     }

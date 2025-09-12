@@ -44,6 +44,16 @@ public class TrainingEntity {
     public TrainingEntity() {
     }
 
+    public TrainingEntity(String id, TraineeEntity trainee, TrainerEntity trainer, String trainingName, TrainingTypeEntity trainingType, LocalDate trainingDate, int trainingDuration) {
+        this.id = id;
+        this.trainee = trainee;
+        this.trainer = trainer;
+        this.trainingName = trainingName;
+        this.trainingType = trainingType;
+        this.trainingDate = trainingDate;
+        this.trainingDuration = trainingDuration;
+    }
+
     public String getId() {
         return id;
     }

@@ -20,6 +20,11 @@ public class TrainingTypeEntity {
     public TrainingTypeEntity() {
     }
 
+    public TrainingTypeEntity(String id, String trainingTypeName) {
+        this.id = id;
+        this.trainingTypeName = trainingTypeName;
+    }
+
     public String getId() {
         return id;
     }

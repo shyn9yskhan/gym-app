@@ -28,6 +28,15 @@ public class UserEntity {
     public UserEntity() {
     }
 
+    public UserEntity(String id, String firstname, String lastname, String username, String password, boolean isActive) {
+        this.id = id;
+        this.firstname = firstname;
+        this.lastname = lastname;
+        this.username = username;
+        this.password = password;
+        this.isActive = isActive;
+    }
+
     public String getId() {
         return id;
     }
